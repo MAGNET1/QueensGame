@@ -1,10 +1,10 @@
 # Variables
-CC = gcc
-CFLAGS = -Wall -g -Iinc
+CC = gcc-14
+CFLAGS = -std=c2x -Wall -Werror -Wpedantic -g -Iinc
 TARGET = my_program
 SRC = $(wildcard src/*.c)
 OBJ = $(SRC:src/%.c=.build/%.o)
-RUN_ARGS = 5
+RUN_ARGS = 10
 
 # Default Target (build and run)
 default: build run

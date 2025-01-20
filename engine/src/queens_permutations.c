@@ -1,55 +1,221 @@
 #include <queens_permutations.h>
+#include <assert_msg.h>
 #include <stdlib.h>
 #include <string.h>
+#include <debug_print.h>
 
-static QueensPermutations_Result_t QueensPermutations_Generate(u8 board_size)
-{
-    QueensPermutations_Result_t result;
-    u32 board_alloc_count = board_size*board_size; /* worst case */
-    result.boards_count = 1u; /* one empty board */
-    result.boards = malloc(sizeof(QueensPermutations_QueenPlaced_t) * board_alloc_count*board_size); /* worst case TODO EDIT */
-    memset(result.boards, 0u, board_alloc_count*board_size);
+constexpr uint32 BOARD_ALLOC_FACTOR = 1000000u; /* TODO not sure how to handle it yet, since alloc size will be exponential, unless number of new boards will not grow later on */
 
-
-    for (size_t board_idx = 0u; board_idx < result.boards_count; board_idx++)
-    {
-        for (size_t column_idx = 0u; column_idx < board_size; column_idx++)
-        {
-            for (size_t row_idx = 0u; row_idx < board_size; row_idx++)
-            {
-
-            }
-        }
-    }
-}
+const QueensPermutations_Result_t QueensPermutations_Generate(uint8 board_size);
+static bool QueensPermutations_IsQueenPlacementLegal(QueensPermutations_QueenRowIndex_t* board, uint8 board_size, sint8 dest_column, sint8 dest_row);
+[[maybe_unused]] static void QueensPermutations_SortBoards(QueensPermutations_QueenRowIndex_t* boards, uint8 board_size, uint8 boards_count);
+[[maybe_unused]] static bool QueensPermutations_SortBoards_ShouldBeFirst(QueensPermutations_QueenRowIndex_t* board_a, QueensPermutations_QueenRowIndex_t* board_b, uint8 board_size);
 
 /* TODO
-- QueensPermutations_QueenPlaced_t -> QueensPermutations_QueenIndex_t i przerobic implementacje pod to
-- result.boards = board_size^board_size / 2 (przy board_size = 10 robia sie juz pojebane liczby, moze da sie to jakoś uproscic. Mozna np. obsolete boardy z poprzednich iteracji czyscic)
-- bierzemy kazda plansze i idziemy kolumnami w dol. Jak PlacementLegal, tworzymy nowa plansze z postawiona krolowa i idziemy dalej. Po calej petli discardujemy poprzednie plansze i powtarzamy na nowo wygenerowanych
-- wydaje mi sie ze te nowe boardy nie beda rosly tak wykladniczo, bo wiekszosc bedzie discardowana. Trzeba sprawdzic jak to sie zachowuje na board_size = 5 i dostosowac odpowiednio malloca
-- pod koniec iteracji glownej mozna robic memmove nowych boardow na poczatek + memset na zera reszty
-
-- QueensPermutations_Get(u8 board_size)
+- QueensPermutations_Get(uint8 board_size)
 - static QueensPermutations_SaveToFile
 - static QueensPermutations_LoadFromFile
+
+- algorithm breaks on size 9 and bigger
+    - sort candidates and print them
+- increase malloc capacity 2x every time it lacks space
+
+- add command ctrl+c to karabiner-elements
+- add undo/redo
 */
 
 
-static inline size_t QueensPermutations_CalculateIndex(u8 board_size, size_t column, size_t row)
+const QueensPermutations_Result_t QueensPermutations_Generate(uint8 board_size)
 {
-    return column*board_size + row;
+    QueensPermutations_Result_t result;
+    result.success = false;
+    result.boards_count = 1u; /* one empty board */
+    uint32 new_board_candidates = 0u;
+    const size_t single_board_alloc_size = sizeof(QueensPermutations_QueenRowIndex_t) * board_size;
+    const size_t all_boards_alloc_size = single_board_alloc_size * board_size * BOARD_ALLOC_FACTOR;
+    result.boards = malloc(all_boards_alloc_size);
+
+    if (result.boards == NULL)
+    {
+        return result;
+    }
+
+    memset(result.boards, QUEEN_ROW_NOT_EXISTS, all_boards_alloc_size);
+
+
+    /*
+        algorithm:
+        1. Start with single, empty board
+        2. on every column iteration, attempt placing queen in every row
+        3. If placement is legal, create a copy of parent board with newly added queen and append new board at the end of the list
+        4. Move newly created boards at the beginning of the list, get rid of older iterations
+    */
+    for (sint8 column_idx = 0; column_idx < board_size; column_idx++)
+    {
+        new_board_candidates = 0u;
+
+        for (size_t board_idx = 0u; board_idx < result.boards_count; board_idx++)
+        {
+            for (sint8 row_idx = 0; row_idx < board_size; row_idx++)
+            {
+
+                if (QueensPermutations_IsQueenPlacementLegal(&result.boards[board_size*board_idx], board_size, column_idx, row_idx) == true)
+                {
+                    assert((board_size*(result.boards_count+new_board_candidates) + board_size) <= (single_board_alloc_size*board_size*BOARD_ALLOC_FACTOR));
+
+                    /* create new board at the end of boards list */
+                    memmove(&result.boards[board_size*(result.boards_count+new_board_candidates)], &result.boards[board_size*board_idx], single_board_alloc_size);
+
+                    /* add queen to new board */
+                    result.boards[board_size*(result.boards_count+new_board_candidates) + column_idx] = row_idx;
+                    ++new_board_candidates;
+                }
+            }
+        }
+
+        /* move all the elements from this iteration to the beginning and discard old ones */
+        memmove(result.boards, &result.boards[board_size*result.boards_count], single_board_alloc_size*new_board_candidates);
+        result.boards_count = new_board_candidates;
+        new_board_candidates = 0u;
+
+        QueensPermutations_SortBoards(result.boards, board_size, result.boards_count);
+    }
+
+    /* algorithm done, get rid of redundant memory */
+    QueensPermutations_QueenRowIndex_t *boards_realloc = (QueensPermutations_QueenRowIndex_t*)realloc(result.boards, board_size*result.boards_count);
+
+    if (boards_realloc == NULL)
+    {
+        free(result.boards);
+        return result;
+    }
+
+    /* success */
+    result.boards = boards_realloc;
+    result.success = true;
+
+    return result; /* has to be freed by the caller (QueensPermutations_FreeResult) */
 }
 
-static bool QueensPermutations_IsQueenPlacementLegal(QueensPermutations_QueenPlaced_t* board, u8 board_size, size_t column, size_t row)
+[[maybe_unused]] static void QueensPermutations_SwapElements(uint8* a, uint8* b)
 {
-    for (size_t row_column_idx = 0u; row_column_idx < board_size; row_column_idx++)
+    uint8 tmp = *a;
+    *a = *b;
+    *b = tmp;
+}
+
+[[maybe_unused]] static bool QueensPermutations_SortBoards_ShouldBeFirst(QueensPermutations_QueenRowIndex_t* board_a, QueensPermutations_QueenRowIndex_t* board_b, uint8 board_size)
+{
+    for (size_t column_idx = 0u; column_idx < board_size; column_idx++)
     {
-        if ((board[QueensPermutations_CalculateIndex(board_size, column, row_column_idx)] == true) ||
-            (board[QueensPermutations_CalculateIndex(board_size, row_column_idx, row)]    == true))
+        if (board_a[column_idx] > board_b[column_idx])
+        {
+            return true;
+        }
+
+        if (board_a[column_idx] < board_b[column_idx])
         {
             return false;
         }
     }
+
+    /* at this point both boards are equal, so it doesn't matter which goes first */
+    return true;
+}
+
+[[maybe_unused]] static void QueensPermutations_SortBoards(QueensPermutations_QueenRowIndex_t* boards, uint8 board_size, uint8 boards_count)
+{
+    /* allocate an array for boards identification (will later be used as memory offsets after sorting) */
+    uint8 *boards_idx = (uint8*) malloc(sizeof(uint8)*boards_count);
+    for (size_t board_idx = 0u; board_idx < boards_count; board_idx++)
+    {
+        boards_idx[board_idx] = board_idx;
+    }
+
+    /* bubble sort, because why the hell not */
+    bool swapped;
+    for (size_t i = 0; i < boards_count - 1; i++)
+    {
+        swapped = false;
+        for (size_t j = 0; j < boards_count - i - 1; j++)
+        {
+            if (QueensPermutations_SortBoards_ShouldBeFirst(&boards[board_size*boards_idx[j]], &boards[board_size*boards_idx[j+1]], board_size))
+            {
+                QueensPermutations_SwapElements(&boards_idx[j], &boards_idx[j + 1]);
+                swapped = true;
+            }
+        }
+
+        if (swapped == false)
+        {
+            break;
+        }
+    }
+
+    /* create new temp boards array and assign sorted boards, then copy it back to original */
+    QueensPermutations_QueenRowIndex_t* boards_sorted = malloc(sizeof(QueensPermutations_QueenRowIndex_t)*board_size*boards_count);
+    for (size_t board_idx = 0u; board_idx < boards_count; board_idx++)
+    {
+        memcpy(&boards_sorted[board_size*board_idx], &boards[board_size*boards_idx[board_idx]], sizeof(QueensPermutations_QueenRowIndex_t)*board_size);
+    }
+
+    memcpy(boards, boards_sorted, sizeof(QueensPermutations_QueenRowIndex_t)*board_size*boards_count);
+
+    free(boards_idx);
+    free(boards_sorted);
+}
+
+bool QueensPermutations_FreeResult(const QueensPermutations_Result_t result)
+{
+    if (result.boards == NULL)
+    {
+        return false;
+    }
+
+    free(result.boards);
+
+    return true;
+}
+static bool QueensPermutations_IsQueenPlacementLegal(QueensPermutations_QueenRowIndex_t* board, uint8 board_size, sint8 dest_column, sint8 dest_row)
+{
+    ASSERT_MSG(dest_column >= 0,         "dest_column: %d", dest_column);
+    ASSERT_MSG(dest_column < board_size, "dest_column: %d", dest_column);
+    ASSERT_MSG(dest_row    >= 0,         "dest_row: %d",    dest_row);
+    ASSERT_MSG(dest_row    < board_size, "dest_row: %d",    dest_row);
+
+    /* no queen in the same column */
+    if (board[dest_column] != QUEEN_ROW_NOT_EXISTS)
+    {
+        return false;
+    }
+
+    /* no queen in the same row */
+    for (sint8 column_idx = 0; column_idx < board_size; column_idx++)
+    {
+        if (board[column_idx] == dest_row)
+        {
+            return false;
+        }
+    }
+
+    /* no queens in the neighboring diagonals */
+    for (sint8 column_idx = dest_column - 1; column_idx <= dest_column + 1; column_idx++)
+    {
+        if (column_idx < 0 || column_idx >= board_size)
+        {
+            continue; // Skip out-of-bounds columns
+        }
+
+        sint8 existing_row = board[column_idx];
+        if (existing_row != QUEEN_ROW_NOT_EXISTS)
+        {
+            /* Check if the neighboring square is diagonally adjacent */
+            if (abs(existing_row - dest_row) == 1) // Difference in row is 1
+            {
+                return false;
+            }
+        }
+    }
+
     return true;
 }

@@ -1,3 +1,6 @@
 .vscode
 .DS_Store
 engine/.build
+engine/.build/
+notes.md
+engine/my_program
