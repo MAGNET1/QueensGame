@@ -6,10 +6,11 @@
 
 constexpr uint32 BOARD_ALLOC_FACTOR = 1000000u; /* TODO not sure how to handle it yet, since alloc size will be exponential, unless number of new boards will not grow later on */
 
-const QueensPermutations_Result_t QueensPermutations_Generate(uint8 board_size);
+QueensPermutations_Result_t QueensPermutations_Generate(uint8 board_size);
 static bool QueensPermutations_IsQueenPlacementLegal(QueensPermutations_QueenRowIndex_t* board, uint8 board_size, sint8 dest_column, sint8 dest_row);
-[[maybe_unused]] static void QueensPermutations_SortBoards(QueensPermutations_QueenRowIndex_t* boards, uint8 board_size, uint8 boards_count);
+[[maybe_unused]] static void QueensPermutations_SortBoards(QueensPermutations_QueenRowIndex_t* boards, uint8 board_size, uint32 boards_count);
 [[maybe_unused]] static bool QueensPermutations_SortBoards_ShouldBeFirst(QueensPermutations_QueenRowIndex_t* board_a, QueensPermutations_QueenRowIndex_t* board_b, uint8 board_size);
+[[maybe_unused]] static void QueensPermutations_SwapElements(size_t* a, size_t* b);
 
 /* TODO
 - QueensPermutations_Get(uint8 board_size)
@@ -25,7 +26,7 @@ static bool QueensPermutations_IsQueenPlacementLegal(QueensPermutations_QueenRow
 */
 
 
-const QueensPermutations_Result_t QueensPermutations_Generate(uint8 board_size)
+QueensPermutations_Result_t QueensPermutations_Generate(uint8 board_size)
 {
     QueensPermutations_Result_t result;
     result.success = false;
@@ -67,7 +68,7 @@ const QueensPermutations_Result_t QueensPermutations_Generate(uint8 board_size)
                     memmove(&result.boards[board_size*(result.boards_count+new_board_candidates)], &result.boards[board_size*board_idx], single_board_alloc_size);
 
                     /* add queen to new board */
-                    result.boards[board_size*(result.boards_count+new_board_candidates) + column_idx] = row_idx;
+                    result.boards[(uint32)board_size*(result.boards_count+new_board_candidates) + (uint32)column_idx] = row_idx;
                     ++new_board_candidates;
                 }
             }
@@ -78,8 +79,9 @@ const QueensPermutations_Result_t QueensPermutations_Generate(uint8 board_size)
         result.boards_count = new_board_candidates;
         new_board_candidates = 0u;
 
-        QueensPermutations_SortBoards(result.boards, board_size, result.boards_count);
+        // QueensPermutations_SortBoards(result.boards, board_size, result.boards_count);
     }
+
 
     /* algorithm done, get rid of redundant memory */
     QueensPermutations_QueenRowIndex_t *boards_realloc = (QueensPermutations_QueenRowIndex_t*)realloc(result.boards, board_size*result.boards_count);
@@ -97,9 +99,9 @@ const QueensPermutations_Result_t QueensPermutations_Generate(uint8 board_size)
     return result; /* has to be freed by the caller (QueensPermutations_FreeResult) */
 }
 
-[[maybe_unused]] static void QueensPermutations_SwapElements(uint8* a, uint8* b)
+[[maybe_unused]] static void QueensPermutations_SwapElements(size_t* a, size_t* b)
 {
-    uint8 tmp = *a;
+    size_t tmp = *a;
     *a = *b;
     *b = tmp;
 }
@@ -123,10 +125,10 @@ const QueensPermutations_Result_t QueensPermutations_Generate(uint8 board_size)
     return true;
 }
 
-[[maybe_unused]] static void QueensPermutations_SortBoards(QueensPermutations_QueenRowIndex_t* boards, uint8 board_size, uint8 boards_count)
+[[maybe_unused]] static void QueensPermutations_SortBoards(QueensPermutations_QueenRowIndex_t* boards, uint8 board_size, uint32 boards_count)
 {
     /* allocate an array for boards identification (will later be used as memory offsets after sorting) */
-    uint8 *boards_idx = (uint8*) malloc(sizeof(uint8)*boards_count);
+    size_t *boards_idx = (size_t*) malloc(sizeof(size_t)*boards_count);
     for (size_t board_idx = 0u; board_idx < boards_count; board_idx++)
     {
         boards_idx[board_idx] = board_idx;
@@ -134,7 +136,7 @@ const QueensPermutations_Result_t QueensPermutations_Generate(uint8 board_size)
 
     /* bubble sort, because why the hell not */
     bool swapped;
-    for (size_t i = 0; i < boards_count - 1; i++)
+    for (size_t i = 0; i < (size_t)boards_count - 1; i++)
     {
         swapped = false;
         for (size_t j = 0; j < boards_count - i - 1; j++)

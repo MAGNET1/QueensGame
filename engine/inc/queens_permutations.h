@@ -15,7 +15,7 @@ typedef struct
     bool success;
 } QueensPermutations_Result_t;
 
-const QueensPermutations_Result_t QueensPermutations_Generate(uint8 board_size);
+QueensPermutations_Result_t QueensPermutations_Generate(uint8 board_size);
 bool QueensPermutations_FreeResult(const QueensPermutations_Result_t result);
 
 #endif /* QUEENS_PERMUTATIONS_H */
