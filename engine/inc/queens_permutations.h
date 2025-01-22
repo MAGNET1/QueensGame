@@ -12,6 +12,7 @@ typedef struct
 {
     QueensPermutations_QueenRowIndex_t* boards;
     uint32 boards_count;
+    uint8 board_size;
     bool success;
 } QueensPermutations_Result_t;
 

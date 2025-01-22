@@ -4,7 +4,8 @@
 #include <string.h>
 #include <debug_print.h>
 
-constexpr uint32 BOARD_ALLOC_FACTOR = 1000000u; /* TODO not sure how to handle it yet, since alloc size will be exponential, unless number of new boards will not grow later on */
+/* empirically estimated  */
+constexpr uint32 BOARDS_INIT_MALLOC_FACTOR = 500u;
 
 QueensPermutations_Result_t QueensPermutations_Generate(uint8 board_size);
 static bool QueensPermutations_IsQueenPlacementLegal(QueensPermutations_QueenRowIndex_t* board, uint8 board_size, sint8 dest_column, sint8 dest_row);
@@ -13,10 +14,6 @@ static bool QueensPermutations_IsQueenPlacementLegal(QueensPermutations_QueenRow
 - QueensPermutations_Get(uint8 board_size)
 - static QueensPermutations_SaveToFile
 - static QueensPermutations_LoadFromFile
-
-- algorithm breaks on size 9 and bigger
-    - sort candidates and print them
-- increase malloc capacity 2x every time it lacks space
 
 - add command ctrl+c to karabiner-elements
 - add undo/redo
@@ -27,18 +24,19 @@ QueensPermutations_Result_t QueensPermutations_Generate(uint8 board_size)
 {
     QueensPermutations_Result_t result;
     result.success = false;
+    result.board_size = board_size;
     result.boards_count = 1u; /* one empty board */
     uint32 new_board_candidates = 0u;
     const size_t single_board_alloc_size = sizeof(QueensPermutations_QueenRowIndex_t) * board_size;
-    const size_t all_boards_alloc_size = single_board_alloc_size * board_size * BOARD_ALLOC_FACTOR;
-    result.boards = malloc(all_boards_alloc_size);
+    uint64 boards_capacity = single_board_alloc_size * board_size * BOARDS_INIT_MALLOC_FACTOR;
+    result.boards = malloc(boards_capacity);
 
     if (result.boards == NULL)
     {
         return result;
     }
 
-    memset(result.boards, QUEEN_ROW_NOT_EXISTS, all_boards_alloc_size);
+    memset(result.boards, QUEEN_ROW_NOT_EXISTS, boards_capacity);
 
 
     /*
@@ -59,7 +57,17 @@ QueensPermutations_Result_t QueensPermutations_Generate(uint8 board_size)
 
                 if (QueensPermutations_IsQueenPlacementLegal(&result.boards[board_size*board_idx], board_size, column_idx, row_idx) == true)
                 {
-                    assert((board_size*(result.boards_count+new_board_candidates) + board_size) <= (single_board_alloc_size*board_size*BOARD_ALLOC_FACTOR));
+                    while((board_size*(result.boards_count+new_board_candidates) + board_size) >= boards_capacity)
+                    {
+                        /* no more space for new boards, increase boards capacity 2x */
+                        boards_capacity *= 2u;
+                        result.boards = (QueensPermutations_QueenRowIndex_t*)realloc(result.boards, boards_capacity);
+                        if (result.boards == NULL)
+                        {
+                            return result;
+                        }
+                        memset(&result.boards[boards_capacity/2], QUEEN_ROW_NOT_EXISTS, boards_capacity/2);
+                    }
 
                     /* create new board at the end of boards list */
                     memmove(&result.boards[board_size*(result.boards_count+new_board_candidates)], &result.boards[board_size*board_idx], single_board_alloc_size);
@@ -79,16 +87,13 @@ QueensPermutations_Result_t QueensPermutations_Generate(uint8 board_size)
 
 
     /* algorithm done, get rid of redundant memory */
-    QueensPermutations_QueenRowIndex_t *boards_realloc = (QueensPermutations_QueenRowIndex_t*)realloc(result.boards, board_size*result.boards_count);
+    result.boards = (QueensPermutations_QueenRowIndex_t*)realloc(result.boards, board_size*result.boards_count);
 
-    if (boards_realloc == NULL)
+    if (result.boards == NULL)
     {
-        free(result.boards);
         return result;
     }
 
-    /* success */
-    result.boards = boards_realloc;
     result.success = true;
 
     return result; /* has to be freed by the caller (QueensPermutations_FreeResult) */

@@ -4,7 +4,7 @@ CFLAGS = -std=c2x -Wall -Werror -Wpedantic -Wextra -Wconversion -g -Iinc
 TARGET = my_program
 SRC = $(wildcard src/*.c)
 OBJ = $(SRC:src/%.c=.build/%.o)
-RUN_ARGS = 5
+RUN_ARGS = 12
 
 # Default Target (build and run)
 default: build run
