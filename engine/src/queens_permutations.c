@@ -8,9 +8,6 @@ constexpr uint32 BOARD_ALLOC_FACTOR = 1000000u; /* TODO not sure how to handle i
 
 QueensPermutations_Result_t QueensPermutations_Generate(uint8 board_size);
 static bool QueensPermutations_IsQueenPlacementLegal(QueensPermutations_QueenRowIndex_t* board, uint8 board_size, sint8 dest_column, sint8 dest_row);
-[[maybe_unused]] static void QueensPermutations_SortBoards(QueensPermutations_QueenRowIndex_t* boards, uint8 board_size, uint32 boards_count);
-[[maybe_unused]] static bool QueensPermutations_SortBoards_ShouldBeFirst(QueensPermutations_QueenRowIndex_t* board_a, QueensPermutations_QueenRowIndex_t* board_b, uint8 board_size);
-[[maybe_unused]] static void QueensPermutations_SwapElements(size_t* a, size_t* b);
 
 /* TODO
 - QueensPermutations_Get(uint8 board_size)
@@ -78,8 +75,6 @@ QueensPermutations_Result_t QueensPermutations_Generate(uint8 board_size)
         memmove(result.boards, &result.boards[board_size*result.boards_count], single_board_alloc_size*new_board_candidates);
         result.boards_count = new_board_candidates;
         new_board_candidates = 0u;
-
-        // QueensPermutations_SortBoards(result.boards, board_size, result.boards_count);
     }
 
 
@@ -97,74 +92,6 @@ QueensPermutations_Result_t QueensPermutations_Generate(uint8 board_size)
     result.success = true;
 
     return result; /* has to be freed by the caller (QueensPermutations_FreeResult) */
-}
-
-[[maybe_unused]] static void QueensPermutations_SwapElements(size_t* a, size_t* b)
-{
-    size_t tmp = *a;
-    *a = *b;
-    *b = tmp;
-}
-
-[[maybe_unused]] static bool QueensPermutations_SortBoards_ShouldBeFirst(QueensPermutations_QueenRowIndex_t* board_a, QueensPermutations_QueenRowIndex_t* board_b, uint8 board_size)
-{
-    for (size_t column_idx = 0u; column_idx < board_size; column_idx++)
-    {
-        if (board_a[column_idx] > board_b[column_idx])
-        {
-            return true;
-        }
-
-        if (board_a[column_idx] < board_b[column_idx])
-        {
-            return false;
-        }
-    }
-
-    /* at this point both boards are equal, so it doesn't matter which goes first */
-    return true;
-}
-
-[[maybe_unused]] static void QueensPermutations_SortBoards(QueensPermutations_QueenRowIndex_t* boards, uint8 board_size, uint32 boards_count)
-{
-    /* allocate an array for boards identification (will later be used as memory offsets after sorting) */
-    size_t *boards_idx = (size_t*) malloc(sizeof(size_t)*boards_count);
-    for (size_t board_idx = 0u; board_idx < boards_count; board_idx++)
-    {
-        boards_idx[board_idx] = board_idx;
-    }
-
-    /* bubble sort, because why the hell not */
-    bool swapped;
-    for (size_t i = 0; i < (size_t)boards_count - 1; i++)
-    {
-        swapped = false;
-        for (size_t j = 0; j < boards_count - i - 1; j++)
-        {
-            if (QueensPermutations_SortBoards_ShouldBeFirst(&boards[board_size*boards_idx[j]], &boards[board_size*boards_idx[j+1]], board_size))
-            {
-                QueensPermutations_SwapElements(&boards_idx[j], &boards_idx[j + 1]);
-                swapped = true;
-            }
-        }
-
-        if (swapped == false)
-        {
-            break;
-        }
-    }
-
-    /* create new temp boards array and assign sorted boards, then copy it back to original */
-    QueensPermutations_QueenRowIndex_t* boards_sorted = malloc(sizeof(QueensPermutations_QueenRowIndex_t)*board_size*boards_count);
-    for (size_t board_idx = 0u; board_idx < boards_count; board_idx++)
-    {
-        memcpy(&boards_sorted[board_size*board_idx], &boards[board_size*boards_idx[board_idx]], sizeof(QueensPermutations_QueenRowIndex_t)*board_size);
-    }
-
-    memcpy(boards, boards_sorted, sizeof(QueensPermutations_QueenRowIndex_t)*board_size*boards_count);
-
-    free(boards_idx);
-    free(boards_sorted);
 }
 
 bool QueensPermutations_FreeResult(const QueensPermutations_Result_t result)
