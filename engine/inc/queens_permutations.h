@@ -4,19 +4,23 @@
 #include <basic_types.h>
 #include <stdbool.h>
 
+#include <constants.h>
+
 constexpr sint8 QUEEN_ROW_NOT_EXISTS = -1;
 
 typedef sint8 QueensPermutations_QueenRowIndex_t;
+typedef uint8 QueensPermutation_BoardSize_t;
 
 typedef struct
 {
     QueensPermutations_QueenRowIndex_t* boards;
     uint32 boards_count;
-    uint8 board_size;
+    QueensPermutation_BoardSize_t board_size;
     bool success;
 } QueensPermutations_Result_t;
 
-QueensPermutations_Result_t QueensPermutations_Generate(uint8 board_size);
+QueensPermutations_Result_t QueensPermutations_Get(QueensPermutation_BoardSize_t board_size);
 bool QueensPermutations_FreeResult(const QueensPermutations_Result_t result);
+[[maybe_unused]] void QueensPermutations_PrintBoards(const QueensPermutations_Result_t* const result);
 
 #endif /* QUEENS_PERMUTATIONS_H */
