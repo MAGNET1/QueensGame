@@ -3,14 +3,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include <debug_print.h>
+#include <global_config.h>
 
 /* estimated empirically */
 constexpr uint32 BOARDS_INIT_MALLOC_FACTOR = 500u;
 
-const char* filename = "QueensPermutations_XX.bin";
+const char* filename = "QueensPermutations_XXX.bin";
 constexpr uint8 filename_strlen = 26u;
-constexpr uint8 filename_size_first_X_pos = 19u;
-constexpr uint8 filename_size_second_X_pos = 20u;
+constexpr uint8 filename_first_X_pos = 19u;
+constexpr uint8 filename_second_X_pos = 20u;
+constexpr uint8 filename_third_X_pos = 21u;
 
 QueensPermutations_Result_t QueensPermutations_Get(const QueensPermutation_BoardSize_t board_size);
 static QueensPermutations_Result_t QueensPermutations_Generate(const QueensPermutation_BoardSize_t board_size);
@@ -18,12 +20,10 @@ static bool QueensPermutations_IsQueenPlacementLegal(const QueensPermutations_Qu
 static bool QueensPermutations_SaveToFile(const QueensPermutations_Result_t* const result);
 static QueensPermutations_Result_t QueensPermutations_LoadFromFile(const QueensPermutation_BoardSize_t board_size);
 static inline void QueensPermutation_PrepareFilename(char* str, const QueensPermutation_BoardSize_t board_size);
+static void QueensPermutations_Decompress(QueensPermutations_Result_t* result);
+static inline uint32 QueensPermutations_RoundUpDiv(uint32 num, uint32 div);
 
 /* TODO
-- QueensPermutations_Get(QueensPermutation_BoardSize_t board_size)
-- static QueensPermutations_SaveToFile
-- static QueensPermutations_LoadFromFile
-
 - add command ctrl+c to karabiner-elements
 - add undo/redo
 */
@@ -38,6 +38,8 @@ QueensPermutations_Result_t QueensPermutations_Get(const QueensPermutation_Board
         result.success = false;
         return result;
     }
+
+    ASSERT_MSG(sizeof(QueensPermutations_QueenRowIndex_t) == 1u, "QueensPermutations_QueenRowIndex_t must be of size 1!");
 
     /* check if file with board permutation has already been generated */
     /* if yes, load from file. If no, generate new one and save to file */
@@ -68,6 +70,7 @@ static bool QueensPermutations_SaveToFile(const QueensPermutations_Result_t* con
 {
     if (result == NULL)
     {
+        ASSERT_MSG(false, "null ptr");
         return false;
     }
 
@@ -78,6 +81,7 @@ static bool QueensPermutations_SaveToFile(const QueensPermutations_Result_t* con
     FILE *file = fopen(destination_filename, "wb");
     if (file == NULL)
     {
+        ASSERT_MSG(false, "could not open a file");
         return false;
     }
 
@@ -85,7 +89,50 @@ static bool QueensPermutations_SaveToFile(const QueensPermutations_Result_t* con
     fwrite(&result->boards_count, sizeof(result->boards_count), 1, file);
 
     /* then the actual boards */
-    fwrite(result->boards, sizeof(QueensPermutations_QueenRowIndex_t), result->board_size*result->boards_count, file);
+    if (global_config.permutations_compressed == true)
+    {
+        constexpr size_t BUFFER_SIZE = 128u;
+        QueensPermutations_QueenRowIndex_t buffer[BUFFER_SIZE] = { 0u };
+        bool lower_nibble = false;
+        size_t buffer_idx = 0u;
+
+        for (size_t column_idx = 0u; column_idx < (result->board_size*result->boards_count); column_idx++)
+        {
+
+            if (lower_nibble == false)
+            {
+                buffer[buffer_idx] |= (result->boards[column_idx] << NIBBLE_LEN);
+            }
+            else
+            {
+                buffer[buffer_idx] |= (result->boards[column_idx] & 0b1111);
+                buffer_idx++;
+
+                if (buffer_idx >= BUFFER_SIZE)
+                {
+                    fwrite(buffer, sizeof(QueensPermutations_QueenRowIndex_t), BUFFER_SIZE, file);
+                    memset(buffer, 0, BUFFER_SIZE);
+                    buffer_idx = 0u;
+                }
+            }
+
+            lower_nibble = !lower_nibble;
+        }
+
+        /* include last number if stored only in higher nibble */
+        if (lower_nibble == true)
+        {
+            buffer_idx++;
+        }
+
+        fwrite(buffer, sizeof(QueensPermutations_QueenRowIndex_t), buffer_idx, file);
+
+    }
+    else
+    {
+        fwrite(result->boards, sizeof(QueensPermutations_QueenRowIndex_t), result->board_size*result->boards_count, file);
+    }
+
 
     fclose(file);
 
@@ -105,6 +152,7 @@ static QueensPermutations_Result_t QueensPermutations_LoadFromFile(const QueensP
     FILE *file = fopen(destination_filename, "rb");
     if (file == NULL)
     {
+        ASSERT_MSG(false, "could not open a file");
         return result;
     }
 
@@ -114,6 +162,7 @@ static QueensPermutations_Result_t QueensPermutations_LoadFromFile(const QueensP
     result.boards = malloc(single_board_alloc_size*result.boards_count);
     if (result.boards == NULL)
     {
+        ASSERT_MSG(false, "malloc error");
         return result;
     }
 
@@ -122,9 +171,44 @@ static QueensPermutations_Result_t QueensPermutations_LoadFromFile(const QueensP
     fclose(file);
     result.success = true;
 
+    if (global_config.permutations_compressed == true)
+    {
+        QueensPermutations_Decompress(&result);
+    }
+
     return result;
 }
 
+static void QueensPermutations_Decompress(QueensPermutations_Result_t* result)
+{
+    /* function assumes that result->boards has enough size for decompressed array */
+
+    /* start from the end to avoid temporaries */
+    const size_t last_column_idx = (result->board_size*result->boards_count);
+    size_t column_compressed_idx = QueensPermutations_RoundUpDiv((uint32)last_column_idx, 2u) - 1;
+    bool lower_nibble = true;
+    /* if last number contains two columns, start from lower nibble. Otherwise, start from higher nibble */
+    if ((column_compressed_idx - (last_column_idx/2u)) == 0u)
+    {
+        lower_nibble = false;
+    }
+
+    for (size_t column_idx = last_column_idx; column_idx-- > 0u;)
+    {
+        if (lower_nibble == true)
+        {
+            result->boards[column_idx] = (result->boards[column_compressed_idx] & 0b1111);
+        }
+        else
+        {
+            result->boards[column_idx] = (result->boards[column_compressed_idx] >> NIBBLE_LEN);
+            column_compressed_idx--;
+        }
+
+        lower_nibble = !lower_nibble;
+    }
+
+}
 
 static QueensPermutations_Result_t QueensPermutations_Generate(const QueensPermutation_BoardSize_t board_size)
 {
@@ -139,6 +223,7 @@ static QueensPermutations_Result_t QueensPermutations_Generate(const QueensPermu
 
     if (result.boards == NULL)
     {
+        ASSERT_MSG(false, "malloc error");
         return result;
     }
 
@@ -169,6 +254,7 @@ static QueensPermutations_Result_t QueensPermutations_Generate(const QueensPermu
                         result.boards = (QueensPermutations_QueenRowIndex_t*)realloc(result.boards, boards_capacity);
                         if (result.boards == NULL)
                         {
+                            ASSERT_MSG(false, "realloc error");
                             return result;
                         }
                         memset(&result.boards[boards_capacity/2], QUEEN_ROW_NOT_EXISTS, boards_capacity/2);
@@ -192,16 +278,15 @@ static QueensPermutations_Result_t QueensPermutations_Generate(const QueensPermu
 
 
     /* algorithm done, get rid of redundant memory */
-    result.boards = (QueensPermutations_QueenRowIndex_t*)realloc(result.boards, board_size*result.boards_count);
+    result.boards = (QueensPermutations_QueenRowIndex_t*)realloc(result.boards, single_board_alloc_size*result.boards_count);
 
     if (result.boards == NULL)
     {
+        ASSERT_MSG(false, "realloc error");
         return result;
     }
 
     result.success = true;
-
-    (void)QueensPermutations_SaveToFile(&result);
 
     return result;
 }
@@ -264,11 +349,20 @@ static bool QueensPermutations_IsQueenPlacementLegal(const QueensPermutations_Qu
 static inline void QueensPermutation_PrepareFilename(char* str, const QueensPermutation_BoardSize_t board_size)
 {
     strcpy(str, filename);
-    str[filename_size_first_X_pos]  = (char)(board_size/10u) + '0';
-    str[filename_size_second_X_pos] = (char)(board_size%10u) + '0';
+    str[filename_first_X_pos]  = (char)(board_size/10u) + '0';
+    str[filename_second_X_pos] = (char)(board_size%10u) + '0';
+
+    if (global_config.permutations_compressed == true)
+    {
+        str[filename_third_X_pos] = 'c';
+    }
+    else
+    {
+        str[filename_third_X_pos] = 'n';
+    }
 }
 
-[[maybe_unused]] void QueensPermutations_PrintBoards(const QueensPermutations_Result_t* const result)
+[[maybe_unused]] void QueensPermutations_PrintBoards(const QueensPermutations_Result_t* const result, bool as_hex)
 {
     printf("Board size: %d\nBoards count: %d\n\n", result->board_size, result->boards_count);
 
@@ -276,8 +370,21 @@ static inline void QueensPermutation_PrepareFilename(char* str, const QueensPerm
     {
         for (uint8 board_column_idx = 0u; board_column_idx < result->board_size; board_column_idx++)
         {
-            printf("%d ", result->boards[(board_idx*result->board_size) + board_column_idx]);
+            if (as_hex == true)
+            {
+                printf("%02X ", result->boards[(board_idx*result->board_size) + board_column_idx]);
+            }
+            else
+            {
+                printf("%d ", result->boards[(board_idx*result->board_size) + board_column_idx]);
+            }
         }
         printf("\n");
     }
+}
+
+/* example: QueensPermutations_RoundUpDiv(15, 2) == 8 */
+static inline uint32 QueensPermutations_RoundUpDiv(uint32 num, uint32 div)
+{
+    return ((num + div - 1u) / div);
 }

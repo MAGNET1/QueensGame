@@ -5,6 +5,7 @@
 #include <queens_permutations.h>
 #include <debug_print.h>
 #include <constants.h>
+#include <global_config.h>
 
 QueensGame_Board_t QueensGame_Board = { 0u };
 
@@ -18,11 +19,13 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    global_config.permutations_compressed = true;
+
     QueensGame_Board.board_size = (uint8)atoi(argv[1]);
 
     const QueensPermutations_Result_t result = QueensPermutations_Get(QueensGame_Board.board_size);
 
-    QueensPermutations_PrintBoards(&result);
+    QueensPermutations_PrintBoards(&result, false);
 
     QueensPermutations_FreeResult(result);
 
