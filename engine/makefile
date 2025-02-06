@@ -1,10 +1,11 @@
 # Variables
-CC = gcc-14
-CFLAGS = -std=c2x -Wall -Werror -Wpedantic -Wextra -Wconversion -g -Iinc
+# CC = gcc-14
+CC = /opt/homebrew/opt/llvm/bin/clang
+CFLAGS = -std=c2x -Wall -Werror -Wpedantic -Wextra -Wconversion -fsanitize=address -g  -O1 -Iinc
 TARGET = my_program
 SRC = $(wildcard src/*.c)
 OBJ = $(SRC:src/%.c=.build/%.o)
-RUN_ARGS = 5
+RUN_ARGS = 9
 
 # Default Target (build and run)
 default: build run
