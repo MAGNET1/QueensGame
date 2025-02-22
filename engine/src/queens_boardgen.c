@@ -3,6 +3,7 @@
 #include <global_config.h>
 #include <rng.h>
 #include <assert.h>
+#include <string.h>
 
 #include <stdlib.h>
 
@@ -35,12 +36,10 @@ QueensBoardGen_Result_t QueensBoardGen_Generate(QueensBoard_Board_t* board)
         return result;
     }
 
-    QueensPermutations_PrintBoards(&random_permutation, false);
-
     /* Place a queen and apply a color */
     for (uint8 row = 0; row < board->board_size; row++)
     {
-        board->board[random_permutation.boards[row]*board->board_size + row] = ((row+1u)|QUEEN_PRESENT);
+        board->board[random_permutation.boards[row]*board->board_size + row] = (row+1u);
     }
 
     (void)QueensPermutations_FreeResult(&random_permutation);
@@ -93,6 +92,67 @@ QueensBoardGen_Result_t QueensBoardGen_Generate(QueensBoard_Board_t* board)
     result = QUEENS_BOARDGEN_SUCCESS;
 
     return result;
+}
+
+bool QueensBoardGen_ValidateOnlyOneSolution(const QueensBoard_Board_t* board)
+{
+    assert(board != NULL);
+    assert(board->board != NULL);
+
+    QueensPermutations_Result_t all_permutations = QueensPermutations_GetAll(board->board_size);
+
+    if (all_permutations.success == false)
+    {
+        return false;
+    }
+
+    /* For each permutation, check if each queen has a unique color. There has to be exactly one permutation that meets this criteria */
+    /* Create an array that stores colors and make sure it consists of unique elements */
+    uint8* colors = (uint8*)calloc(board->board_size+1u, sizeof(uint8));
+    if (colors == NULL)
+    {
+        return false;
+    }
+
+    bool one_solution = false;
+
+    for (uint32 permutation_idx = 0; permutation_idx < all_permutations.boards_count; permutation_idx++)
+    {
+        bool valid_permutation = true;
+
+        for (uint8 column = 0; column < board->board_size; column++)
+        {
+            uint8 color = QueensBoard_GetColor(board->board[IDX(all_permutations.boards[permutation_idx*board->board_size + column], column, board->board_size)]);
+            if (colors[color] == 1u)
+            {
+                valid_permutation = false;
+                break;
+            }
+            else
+            {
+                colors[color] = 1u;
+            }
+        }
+
+        if (valid_permutation)
+        {
+            if (one_solution)
+            {
+                one_solution = false;
+                break;
+            }
+            else
+            {
+                one_solution = true;
+            }
+        }
+
+        memset(colors, 0, board->board_size+1);
+    }
+
+    free(colors);
+
+    return one_solution;
 }
 
 static uint8 QueensBoardGen_GetCellNeighbors(const QueensBoard_Board_t* board, const uint8 row, const uint8 column, int neighbors[4][2], bool only_horizontal, bool only_vertical)
