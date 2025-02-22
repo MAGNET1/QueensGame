@@ -1,7 +1,7 @@
 # Variables
 # CC = gcc-14
 CC = /opt/homebrew/opt/llvm/bin/clang
-CFLAGS = -std=c2x -Wall -Werror -Wpedantic -Wextra -Wconversion -fsanitize=address -g  -O1 -Iinc
+CFLAGS = -std=c2x -Wall -Werror -Wpedantic -Wextra -Wconversion -fsanitize=address -g  -O0 -Iinc
 TARGET = my_program
 SRC = $(wildcard src/*.c)
 OBJ = $(SRC:src/%.c=.build/%.o)

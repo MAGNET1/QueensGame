@@ -3,6 +3,7 @@
 
 #include <board.h>
 #include <queens_permutations.h>
+#include <queens_boardgen.h>
 #include <debug_print.h>
 #include <constants.h>
 #include <global_config.h>
@@ -23,20 +24,19 @@ int main(int argc, char** argv)
     RNG_Seed((uint64)time(NULL));
 
     global_config.permutations_compressed = true;
+    global_config.boardgen_cell_skip_chance = 50u;
+    global_config.boardgen_neighbor_skip_chance = 20u;
+    global_config.boardgen_only_horizontal_neighbor_chance = 30u;
+    global_config.boardgen_only_vertical_neighbor_chance = 30u;
 
     QueensGame_Board.board_size = (uint8)atoi(argv[1]);
 
-    const QueensPermutations_Result_t result = QueensPermutations_GetRandom(QueensGame_Board.board_size);
+    QueensBoard_Board_t board = { 0u };
+    board.board_size = QueensGame_Board.board_size;
 
-    QueensPermutations_PrintBoards(&result, false);
+    QueensBoardGen_Generate(&board);
 
-    QueensPermutations_FreeResult(&result);
-
-    /*RNG_Seed((uint64)time(NULL));
-    for (int i = 0; i < 20; i++)
-    {
-        printf("%u\n", RNG_RandomRange_u32(2, 10));
-    }*/
+    QueensBoardGen_PrintBoard(&board);
 
     return 0;
 }
