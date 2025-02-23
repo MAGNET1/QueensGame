@@ -25,9 +25,9 @@ int main(int argc, char** argv)
 
     global_config.permutations_compressed = true;
     global_config.boardgen_cell_skip_chance = 20u;
-    global_config.boardgen_neighbor_skip_chance = 20u;
-    global_config.boardgen_only_horizontal_neighbor_chance = 80u;
-    global_config.boardgen_only_vertical_neighbor_chance = 80u;
+    global_config.boardgen_neighbor_skip_chance = 80u;
+    global_config.boardgen_only_horizontal_neighbor_chance = 5u;
+    global_config.boardgen_only_vertical_neighbor_chance = 5u;
 
     QueensGame_Board.board_size = (uint8)atoi(argv[1]);
 
@@ -36,12 +36,15 @@ int main(int argc, char** argv)
 
     volatile int n = 0;
 
+    QueensPermutations_Result_t all_permutations = QueensPermutations_GetAll(QueensGame_Board.board_size);
+
     do
     {
-        QueensBoardGen_Generate(&board);
+        QueensBoardGen_Generate(&board, NULL);
         n++;
-    } while (QueensBoardGen_ValidateOnlyOneSolution(&board) == false);
+    } while (QueensBoardGen_ValidateOnlyOneSolution(&board, &all_permutations) == false);
 
+    printf("\n");
     QueensBoardGen_PrintBoard(&board);
 
     printf("Number of iterations: %d\n", n);

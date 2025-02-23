@@ -1,5 +1,4 @@
 #include <queens_boardgen.h>
-#include <queens_permutations.h>
 #include <global_config.h>
 #include <rng.h>
 #include <assert.h>
@@ -9,7 +8,7 @@
 
 static uint8 QueensBoardGen_GetCellNeighbors(const QueensBoard_Board_t* board, const uint8 row, const uint8 column, int neighbors[4][2], bool only_horizontal, bool only_vertical);
 
-QueensBoardGen_Result_t QueensBoardGen_Generate(QueensBoard_Board_t* board)
+QueensBoardGen_Result_t QueensBoardGen_Generate(QueensBoard_Board_t* board, QueensPermutations_Result_t* permutation)
 {
     QueensBoardGen_Result_t result = QUEENS_BOARDGEN_ERROR;
     if (board == NULL)
@@ -29,8 +28,38 @@ QueensBoardGen_Result_t QueensBoardGen_Generate(QueensBoard_Board_t* board)
         return result;
     }
 
-    QueensPermutations_Result_t random_permutation = QueensPermutations_GetRandom(board->board_size);
-    if (random_permutation.success == false)
+    bool permutation_provided_externally = true;
+    QueensPermutations_Result_t random_permutation = { 0 };
+
+    /* no permutation provided externally, create new one */
+    if (permutation == NULL)
+    {
+        random_permutation = QueensPermutations_GetRandom(board->board_size);
+        permutation = &random_permutation;
+        permutation_provided_externally = false;
+    }
+    else
+    {
+        if (permutation->success == false)
+        {
+            free(board->board);
+            return result;
+        }
+
+        if (permutation->board_size != board->board_size)
+        {
+            free(board->board);
+            return result;
+        }
+
+        if (permutation->boards_count != 1u)
+        {
+            free(board->board);
+            return result;
+        }
+    }
+
+    if (permutation->success == false)
     {
         free(board->board);
         return result;
@@ -39,10 +68,13 @@ QueensBoardGen_Result_t QueensBoardGen_Generate(QueensBoard_Board_t* board)
     /* Place a queen and apply a color */
     for (uint8 row = 0; row < board->board_size; row++)
     {
-        board->board[random_permutation.boards[row]*board->board_size + row] = (row+1u);
+        board->board[permutation->boards[row]*board->board_size + row] = (row+1u);
     }
 
-    (void)QueensPermutations_FreeResult(&random_permutation);
+    if (permutation_provided_externally == false)
+    {
+        (void)QueensPermutations_FreeResult(permutation);
+    }
 
     uint16 non_color_cells_count = 0u;
 
@@ -94,14 +126,29 @@ QueensBoardGen_Result_t QueensBoardGen_Generate(QueensBoard_Board_t* board)
     return result;
 }
 
-bool QueensBoardGen_ValidateOnlyOneSolution(const QueensBoard_Board_t* board)
+bool QueensBoardGen_ValidateOnlyOneSolution(const QueensBoard_Board_t* board, const QueensPermutations_Result_t* permutations)
 {
     assert(board != NULL);
     assert(board->board != NULL);
 
-    QueensPermutations_Result_t all_permutations = QueensPermutations_GetAll(board->board_size);
+    QueensPermutations_Result_t all_permutations = { 0 };
 
-    if (all_permutations.success == false)
+    /* check if permutations were provided externally */
+    if (permutations == NULL)
+    {
+        all_permutations = QueensPermutations_GetAll(board->board_size);
+        permutations = &all_permutations;
+    }
+    else
+    {
+        if (permutations->board_size != board->board_size)
+        {
+            return false;
+        }
+    }
+
+
+    if (permutations->success == false)
     {
         return false;
     }
@@ -116,13 +163,13 @@ bool QueensBoardGen_ValidateOnlyOneSolution(const QueensBoard_Board_t* board)
 
     bool one_solution = false;
 
-    for (uint32 permutation_idx = 0; permutation_idx < all_permutations.boards_count; permutation_idx++)
+    for (uint32 permutation_idx = 0; permutation_idx < permutations->boards_count; permutation_idx++)
     {
         bool valid_permutation = true;
 
         for (uint8 column = 0; column < board->board_size; column++)
         {
-            uint8 color = QueensBoard_GetColor(board->board[IDX(all_permutations.boards[permutation_idx*board->board_size + column], column, board->board_size)]);
+            uint8 color = QueensBoard_GetColor(board->board[IDX(permutations->boards[permutation_idx*board->board_size + column], column, board->board_size)]);
             if (colors[color] == 1u)
             {
                 valid_permutation = false;

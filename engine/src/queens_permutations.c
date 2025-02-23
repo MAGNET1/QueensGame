@@ -76,8 +76,17 @@ static FILE* QueensPermutations_OpenPermutationsFile(QueensPermutation_BoardSize
     {
         uint32 file_elements_read_count = QueensPermutations_RoundUpDiv(board_size, 2u);
         uint32 random_board_num = RNG_RandomRange_u32(0u, file_boards_count-1u);
-        random_board_offset = (uint32)sizeof(file_boards_count) + random_board_num * (uint32)board_size / 2u;;
-        bool board_starts_from_middle_of_byte = ((random_board_num % 2u) != 0u); /* scenario where board size is odd */
+        random_board_offset = (uint32)sizeof(file_boards_count) + random_board_num * (uint32)board_size / 2u;
+
+        /* scenario where board size is odd */
+        bool board_starts_from_middle_of_byte = ((random_board_num % 2u) != 0u);
+
+        /* for even board sizes, this is always false */
+        if (board_size % 2u == 0u)
+        {
+            board_starts_from_middle_of_byte = false;
+        }
+
         fseek(file, random_board_offset, SEEK_SET);
         fread(result.boards, sizeof(QueensPermutations_QueenRowIndex_t), file_elements_read_count, file);
 
