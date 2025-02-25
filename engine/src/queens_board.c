@@ -26,3 +26,37 @@ void QueensBoard_SetQueen(QueensBoard_Cell_t* cell, const bool present)
         *cell &= ~QUEEN_PRESENT;
     }
 }
+
+bool QueensBoard_IsCellEliminated(const QueensBoard_Cell_t cell)
+{
+    return (cell & CELL_ELIMINATED) != 0;
+}
+
+void QueensBoard_SetCellEliminated(QueensBoard_Cell_t* cell, const bool eliminated)
+{
+    if (eliminated)
+    {
+        *cell |= CELL_ELIMINATED;
+    }
+    else
+    {
+        *cell &= ~CELL_ELIMINATED;
+    }
+}
+
+bool QueensBoard_IsPlayerQueenPresent(const QueensBoard_Cell_t cell)
+{
+    return (cell & PLAYER_QUEEN_PRESENT) != 0;
+}
+
+void QueensBoard_SetPlayerQueen(QueensBoard_Cell_t* cell, const bool present)
+{
+    if (present)
+    {
+        *cell |= PLAYER_QUEEN_PRESENT;
+    }
+    else
+    {
+        *cell &= ~PLAYER_QUEEN_PRESENT;
+    }
+}
