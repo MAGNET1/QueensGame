@@ -60,3 +60,13 @@ void QueensBoard_SetPlayerQueen(QueensBoard_Cell_t* cell, const bool present)
         *cell &= ~PLAYER_QUEEN_PRESENT;
     }
 }
+
+bool QueensBoard_IsCellEmpty(const QueensBoard_Cell_t cell)
+{
+    return (cell & (QUEEN_PRESENT | PLAYER_QUEEN_PRESENT | CELL_ELIMINATED)) == 0;
+}
+
+bool QueensBoard_IsCellEmptyPlayer(const QueensBoard_Cell_t cell)
+{
+    return (cell & (PLAYER_QUEEN_PRESENT | CELL_ELIMINATED)) == 0;
+}

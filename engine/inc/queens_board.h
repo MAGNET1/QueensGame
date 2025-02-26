@@ -15,7 +15,6 @@
 typedef uint8 QueensBoard_Cell_t;
 typedef uint8 QueensBoard_Size_t;
 
-constexpr QueensBoard_Cell_t CELL_EMPTY           = 0u;
 constexpr QueensBoard_Cell_t COLOR_NONE           = 0u;
 
 constexpr QueensBoard_Cell_t QUEEN_PRESENT        = (1<<4); /* 0001'0000 (The actual queen provided by QueensBoardgen) */
@@ -30,6 +29,8 @@ bool QueensBoard_IsCellEliminated(const QueensBoard_Cell_t cell);
 void QueensBoard_SetCellEliminated(QueensBoard_Cell_t* cell, const bool eliminated);
 bool QueensBoard_IsPlayerQueenPresent(const QueensBoard_Cell_t cell);
 void QueensBoard_SetPlayerQueen(QueensBoard_Cell_t* cell, const bool present);
+bool QueensBoard_IsCellEmpty(const QueensBoard_Cell_t cell);
+bool QueensBoard_IsCellEmptyPlayer(const QueensBoard_Cell_t cell); /* not eliminated on no player queen */
 
 typedef struct
 {
