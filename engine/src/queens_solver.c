@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <rng.h>
 
 typedef void (*QueensSolver_Strategy)(QueensBoard_Board_t*);
 
@@ -14,11 +15,21 @@ typedef enum
     QUEENS_SOLVER_STRATEGY_N_GROUPS_STEP_DONE
 } QueensSolver_Strategy_NGroups_Step_t;
 
+
+constexpr uint8 LAST_COLOR_CELL_POSITION_INVALID = 0xFFu;
+typedef struct
+{
+    uint8 row;
+    uint8 column;
+} QueensSolver_LastColorCellPosition_t;
+
 constexpr uint8 COLOR_PRESENT = 1u;
 
 QueensBoard_Board_t* QueensSolver_CloneBoard(QueensBoard_Board_t* board);
 void QueensSolver_CopyBoard(QueensBoard_Board_t* src, QueensBoard_Board_t* dest);
 void QueensSolver_PlaceQueen(QueensBoard_Board_t* board, uint8 row, uint8 column);
+bool QueensSolver_IsBoardValid(QueensBoard_Board_t* board);
+QueensSolver_LastColorCellPosition_t QueensSolver_GetLastColorCell(QueensBoard_Board_t* board);
 
 void QueensSolver_Strategy_InvalidQueen(QueensBoard_Board_t* board);
 void QueensSolver_Strategy_InvalidElimination(QueensBoard_Board_t* board);
@@ -31,7 +42,7 @@ void QueensSolver_Strategy_SingleColorInRowOrColumn(QueensBoard_Board_t* board);
 void QueensSolver_Strategy_QueenPlacementEliminatesAllTheColorsLeft(QueensBoard_Board_t* board);
 void QueensSolver_Strategy_QueenPlacementEliminatesEntireRowOrColumn(QueensBoard_Board_t* board);
 void QueensSolver_Strategy_NColorGroupsOccupyingNRownsOrColumns(QueensBoard_Board_t* board);
-// void QueensSolver_Strategy_QueenPlacementLeadsToInvalidForcingSequence(QueensBoard_Board_t* board);
+void QueensSolver_Strategy_QueenPlacementLeadsToInvalidForcingSequence(QueensBoard_Board_t* board);
 
 static inline uint8 QueensSolver_RoundUpDiv(uint8 num, uint8 div);
 
@@ -45,7 +56,10 @@ QueensSolver_Strategy strategies[] =
     QueensSolver_Strategy_LastAvailableColorShallBeQueen,
     QueensSolver_Strategy_GroupOnlyInSingleRowOrColumn,
     QueensSolver_Strategy_SingleColorInRowOrColumn,
-    QueensSolver_Strategy_QueenPlacementEliminatesAllTheColorsLeft
+    QueensSolver_Strategy_QueenPlacementEliminatesAllTheColorsLeft,
+    QueensSolver_Strategy_QueenPlacementEliminatesEntireRowOrColumn,
+    QueensSolver_Strategy_NColorGroupsOccupyingNRownsOrColumns,
+    QueensSolver_Strategy_QueenPlacementLeadsToInvalidForcingSequence
 };
 
 QueensBoard_Board_t* QueensSolver_CloneBoard(QueensBoard_Board_t* board)
@@ -717,6 +731,7 @@ void QueensSolver_Strategy_NColorGroupsOccupyingNRownsOrColumns(QueensBoard_Boar
     constexpr uint8 window_custom_patterns[window_custom_patterns_count][window_custom_patterns_len] =
     {
         {1u, 0u, 1u, 0u},
+        {0u, 1u, 0u, 1u},
         {1u, 0u, 0u, 1u},
         {1u, 0u, 1u, 1u},
         {1u, 1u, 0u, 1u},
@@ -1025,8 +1040,181 @@ free_resources:
     free(colors_outside_window_column);
     free(rolling_window);
     return;
+}
+
+void QueensSolver_Strategy_QueenPlacementLeadsToInvalidForcingSequence(QueensBoard_Board_t* board)
+{
+    QueensBoard_Board_t board_copy;
+    board_copy.board = (QueensBoard_Cell_t*)malloc(sizeof(QueensBoard_Cell_t)*board->board_size*board->board_size);
+
+    if (board_copy.board == NULL)
+    {
+        return;
+    }
+
+    uint8 random_row    = (uint8)RNG_RandomRange_u16(0, board->board_size-1);
+    uint8 random_column = (uint8)RNG_RandomRange_u16(0, board->board_size-1);
+
+    /* look for cell that leads to forcing sequence */
+    for (uint8 row = random_row; row != random_row; row = (row+1) % board->board_size)
+    {
+        for (uint8 column = random_column; column != random_column; column = (column+1) % board->board_size)
+        {
+            if (QueensBoard_IsCellEmptyPlayer(board->board[IDX(row, column, board->board_size)]) == true)
+            {
+                QueensSolver_CopyBoard(board, &board_copy);
+
+                uint8 dest_row = row;
+                uint8 dest_column = column;
+
+                while(true)
+                {
+                    QueensSolver_PlaceQueen(&board_copy, dest_row, dest_column);
+
+                    if (QueensSolver_IsBoardValid(&board_copy) == false)
+                    {
+                        QueensBoard_SetCellEliminated(&board->board[IDX(row, column, board->board_size)], true);
+                        goto free_resources;
+                    }
+                    else
+                    {
+                        QueensSolver_LastColorCellPosition_t last_color_cell = QueensSolver_GetLastColorCell(&board_copy);
+                        if ((last_color_cell.row == LAST_COLOR_CELL_POSITION_INVALID) ||
+                            (last_color_cell.column == LAST_COLOR_CELL_POSITION_INVALID))
+                        {
+                            goto free_resources;
+                        }
+                        else
+                        {
+                            dest_row = last_color_cell.row;
+                            dest_column = last_color_cell.column;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+free_resources:
+    free(board_copy.board);
+    return;
+}
+
+/* Look for any color that has one cell left and retrieve its position */
+QueensSolver_LastColorCellPosition_t QueensSolver_GetLastColorCell(QueensBoard_Board_t* board)
+{
+    QueensSolver_LastColorCellPosition_t last_color_cell;
+    last_color_cell.row = LAST_COLOR_CELL_POSITION_INVALID;
+    last_color_cell.column = LAST_COLOR_CELL_POSITION_INVALID;
 
 
+    uint8* colors = (uint8*)calloc(board->board_size+1, sizeof(uint8));
+    if (colors == NULL)
+    {
+        return last_color_cell;
+    }
+
+    for (uint8 row = 0; row < board->board_size; row++)
+    {
+        for (uint8 column = 0; column < board->board_size; column++)
+        {
+            if (QueensBoard_IsCellEmptyPlayer(board->board[IDX(row, column, board->board_size)]) == true)
+            {
+                uint8 color = QueensBoard_GetColor(board->board[IDX(row, column, board->board_size)]);
+                colors[color]++;
+            }
+        }
+    }
+
+    for (uint8 color = 1; color <= board->board_size; color++)
+    {
+        if (colors[color] == 1u)
+        {
+            for (uint8 row = 0; row < board->board_size; row++)
+            {
+                for (uint8 column = 0; column < board->board_size; column++)
+                {
+                    if (QueensBoard_IsCellEmptyPlayer(board->board[IDX(row, column, board->board_size)]) == true)
+                    {
+                        uint8 cell_color = QueensBoard_GetColor(board->board[IDX(row, column, board->board_size)]);
+                        if (cell_color == color)
+                        {
+                            last_color_cell.row = row;
+                            last_color_cell.column = column;
+                            free(colors);
+                            return last_color_cell;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    free(colors);
+    return last_color_cell;
+}
+
+bool QueensSolver_IsBoardValid(QueensBoard_Board_t* board)
+{
+    /* check if there are rows/columns that have been entirely eliminated */
+    for (uint8 rc = 0; rc < board->board_size; rc++)
+    {
+        uint8 eliminated_count_row = 0u;
+        uint8 eliminated_count_column = 0u;
+
+        for (uint8 i = 0; i < board->board_size; i++)
+        {
+            if (QueensBoard_IsCellEmptyPlayer(board->board[IDX(rc, i, board->board_size)]) == true)
+            {
+                eliminated_count_row++;
+            }
+
+            if (QueensBoard_IsCellEmptyPlayer(board->board[IDX(i, rc, board->board_size)]) == true)
+            {
+                eliminated_count_column++;
+            }
+        }
+
+        if ((eliminated_count_row == board->board_size) ||
+            (eliminated_count_column == board->board_size))
+        {
+            return false;
+        }
+    }
+
+    /* check if there are colors that have been fully eliminated */
+    constexpr sint8 QUEEN_PRESENT = -1;
+    uint8* empty_cells_color_count = (uint8*)calloc(board->board_size+1, sizeof(uint8));
+    if (empty_cells_color_count == NULL)
+    {
+        return false;
+    }
+
+    for (uint8 row = 0; row < board->board_size; row++)
+    {
+        for (uint8 column = 0; column < board->board_size; column++)
+        {
+            uint8 color = QueensBoard_GetColor(board->board[IDX(row, column, board->board_size)]);
+
+            if ((QueensBoard_IsCellEmptyPlayer(board->board[IDX(row, column, board->board_size)]) == true) ||
+                (QueensBoard_IsPlayerQueenPresent(board->board[IDX(row, column, board->board_size)]) == true))
+            {
+                empty_cells_color_count[color]++;
+            }
+        }
+    }
+
+    for (uint8 color = 1; color <= board->board_size; color++)
+    {
+        if (empty_cells_color_count[color] == 0)
+        {
+            free(empty_cells_color_count);
+            return false;
+        }
+    }
+
+    free(empty_cells_color_count);
+    return true;
 }
 
 /* example: QueensPermutations_RoundUpDiv(15, 2) == 8 */
