@@ -21,6 +21,15 @@ constexpr QueensBoard_Cell_t QUEEN_PRESENT        = (1<<4); /* 0001'0000 (The ac
 constexpr QueensBoard_Cell_t PLAYER_QUEEN_PRESENT = (1<<5); /* 0010'0000 (Queen placed by player or QueensSolver) */
 constexpr QueensBoard_Cell_t CELL_ELIMINATED      = (1<<6); /* 0100'0000 */
 
+typedef struct
+{
+    QueensBoard_Cell_t* board;
+    QueensBoard_Size_t board_size;
+} QueensBoard_Board_t;
+
+bool QueensBoard_Create(QueensBoard_Board_t* empty_board_ptr, const QueensBoard_Size_t size);
+void QueensBoard_Free(QueensBoard_Board_t* board);
+
 QueensBoard_Cell_t QueensBoard_GetColor(const QueensBoard_Cell_t cell);
 void QueensBoard_SetColor(QueensBoard_Cell_t* cell, const QueensBoard_Cell_t color);
 bool QueensBoard_IsQueenPresent(const QueensBoard_Cell_t cell);
@@ -31,11 +40,5 @@ bool QueensBoard_IsPlayerQueenPresent(const QueensBoard_Cell_t cell);
 void QueensBoard_SetPlayerQueen(QueensBoard_Cell_t* cell, const bool present);
 bool QueensBoard_IsCellEmpty(const QueensBoard_Cell_t cell);
 bool QueensBoard_IsCellEmptyPlayer(const QueensBoard_Cell_t cell); /* not eliminated on no player queen */
-
-typedef struct
-{
-    QueensBoard_Cell_t* board;
-    QueensBoard_Size_t board_size;
-} QueensBoard_Board_t;
 
 #endif /* QUEENS_BOARD_H */

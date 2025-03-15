@@ -1,4 +1,23 @@
 #include <queens_board.h>
+#include <stdlib.h>
+
+bool QueensBoard_Create(QueensBoard_Board_t* empty_board_ptr, const QueensBoard_Size_t size)
+{
+    empty_board_ptr->board = (QueensBoard_Cell_t*)calloc(size * size, sizeof(QueensBoard_Cell_t));
+    if (empty_board_ptr->board == NULL)
+    {
+        return false;
+    }
+
+    empty_board_ptr->board_size = size;
+
+    return true;
+}
+
+void QueensBoard_Free(QueensBoard_Board_t* board)
+{
+    free(board->board);
+}
 
 QueensBoard_Cell_t QueensBoard_GetColor(const QueensBoard_Cell_t cell)
 {
