@@ -5,7 +5,7 @@ CFLAGS = -std=c2x -Wall -Werror -Wpedantic -Wextra -Wconversion -fsanitize=addre
 TARGET = my_program
 SRC = $(wildcard src/*.c)
 OBJ = $(SRC:src/%.c=.build/%.o)
-RUN_ARGS = --generate 6
+RUN_ARGS = --generate_and_solve 6
 
 # Default Target (build and run)
 default: build run

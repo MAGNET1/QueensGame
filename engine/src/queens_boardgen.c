@@ -11,19 +11,8 @@ static uint8 QueensBoardGen_GetCellNeighbors(const QueensBoard_Board_t* board, c
 QueensBoardGen_Result_t QueensBoardGen_Generate(QueensBoard_Board_t* board, QueensPermutations_Result_t* permutation)
 {
     QueensBoardGen_Result_t result = QUEENS_BOARDGEN_ERROR;
-    if (board == NULL)
-    {
-        return result;
-    }
 
     if (board->board_size < QUEENS_MIN_BOARD_SIZE || board->board_size > QUEENS_MAX_BOARD_SIZE)
-    {
-        return result;
-    }
-
-    board->board = (QueensBoard_Cell_t*)calloc(board->board_size*board->board_size, sizeof(QueensBoard_Cell_t));
-
-    if (board->board == NULL)
     {
         return result;
     }
@@ -64,6 +53,8 @@ QueensBoardGen_Result_t QueensBoardGen_Generate(QueensBoard_Board_t* board, Quee
         free(board->board);
         return result;
     }
+
+    QueensBoard_ZeroeBoard(board);
 
     /* Place a queen and apply a color */
     for (uint8 row = 0; row < board->board_size; row++)
@@ -225,47 +216,4 @@ static uint8 QueensBoardGen_GetCellNeighbors(const QueensBoard_Board_t* board, c
     }
 
     return neighbors_count;
-}
-
-void QueensBoardGen_PrintBoard(const QueensBoard_Board_t* const board)
-{
-    const char* colors_console[] = {
-        "\033[0m", /* COLOR_NONE */
-        "\033[31m", /* COLOR_RED */
-        "\033[32m", /* COLOR_GREEN */
-        "\033[33m", /* COLOR_YELLOW */
-        "\033[34m", /* COLOR_BLUE */
-        "\033[35m", /* COLOR_MAGENTA */
-        "\033[36m", /* COLOR_CYAN */
-        "\033[37m", /* COLOR_WHITE */
-        "\033[90m", /* COLOR_BRIGHT_BLACK */
-        "\033[91m", /* COLOR_BRIGHT_RED */
-        "\033[92m", /* COLOR_BRIGHT_GREEN */
-        "\033[93m", /* COLOR_BRIGHT_YELLOW */
-        "\033[94m", /* COLOR_BRIGHT_BLUE */
-        "\033[95m", /* COLOR_BRIGHT_MAGENTA */
-        "\033[96m", /* COLOR_BRIGHT_CYAN */
-        "\033[97m"  /* COLOR_BRIGHT_WHITE */
-    };
-
-    assert(board != NULL);
-    assert(board->board != NULL);
-
-    for (uint8 row = 0; row < board->board_size; row++)
-    {
-        for (uint8 column = 0; column < board->board_size; column++)
-        {
-            QueensBoard_Cell_t cell = board->board[IDX(row, column, board->board_size)];
-            uint8 color = QueensBoard_GetColor(cell);
-            if (QueensBoard_IsQueenPresent(cell))
-            {
-                printf("%s\033[1mQ\033[0m ", colors_console[color % 16]);
-            }
-            else
-            {
-                printf("%sX\033[0m ", colors_console[color % 16]);
-            }
-        }
-        printf("\n");
-    }
 }

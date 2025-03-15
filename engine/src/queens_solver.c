@@ -79,6 +79,7 @@ QueensSolver_Strategy_t QueensSolver_IncrementalSolve(QueensBoard_Board_t* board
 
     QueensBoard_Board_t board_copy;
     bool status = QueensBoard_Create(&board_copy, board->board_size);
+    QueensSolver_CopyBoard(board, &board_copy);
 
     if (status == false)
     {
@@ -245,7 +246,7 @@ static void QueensSolver_PlaceQueen(QueensBoard_Board_t* board, uint8 row, uint8
     {
         sint8 new_row = (sint8)row + directions[i][0];
         sint8 new_column = (sint8)column + directions[i][1];
-        while (new_row >= 0 && new_row < board->board_size && new_column >= 0 && new_column < board->board_size)
+        if (new_row >= 0 && new_row < board->board_size && new_column >= 0 && new_column < board->board_size)
         {
             QueensBoard_SetCellEliminated(&board->board[IDX(new_row, new_column, board->board_size)], true);
         }
@@ -255,6 +256,25 @@ static void QueensSolver_PlaceQueen(QueensBoard_Board_t* board, uint8 row, uint8
 /* Sanity check - check if queen has been placed by the player, but it actually shouldn't be */
 static void QueensSolver_Strategy_InvalidQueen(QueensBoard_Board_t* board)
 {
+    /* check if there are any non-player queens. If not, skip the strategy */
+    bool queen_present = false;
+    for (uint8 row = 0; row < board->board_size; row++)
+    {
+        for (uint8 column = 0; column < board->board_size; column++)
+        {
+            if (QueensBoard_IsQueenPresent(board->board[IDX(row, column, board->board_size)]) == true)
+            {
+                queen_present = true;
+                break;
+            }
+        }
+    }
+
+    if (queen_present == false)
+    {
+        return;
+    }
+
     for (uint8 row = 0; row < board->board_size; row++)
     {
         for (uint8 column = 0; column < board->board_size; column++)
@@ -1000,8 +1020,8 @@ static void QueensSolver_Strategy_NColorGroupsOccupyingNRownsOrColumns(QueensBoa
             }
         }
 
-        assert(colors_in_window_row_count >= rc_count);
-        assert(colors_in_window_column_count >= rc_count);
+        assert(colors_in_window_row_count < rc_count);
+        assert(colors_in_window_column_count < rc_count);
 
         /* if there are N colors in N rows/columns, N queens with investigated colors will have to be placed there */
         /* for that reason, if these N colors appear anywhere outside of window, they can be eliminated */
