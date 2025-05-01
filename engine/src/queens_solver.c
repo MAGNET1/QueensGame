@@ -1363,11 +1363,11 @@ const char* QueensSolver_GetStrategyName(QueensSolver_Strategy_t strategy)
 {
     switch(strategy)
     {
-        #define XMACRO_STRATEGY_NAME(name, value) \
+        #define QUEENS_SOLVER_STRATEGY_CASE(name, value) \
             case value: \
                 return #name;
 
-        QUEENS_SOLVER_STRATEGIES(XMACRO_STRATEGY_NAME)
+        XMACRO_QUEENS_SOLVER_STRATEGIES(QUEENS_SOLVER_STRATEGY_CASE)
 
         default:
             return "Unknown strategy";

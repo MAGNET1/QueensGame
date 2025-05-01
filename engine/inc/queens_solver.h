@@ -3,7 +3,7 @@
 
 #include <queens_board.h>
 
-#define QUEENS_SOLVER_STRATEGIES(X) \
+#define XMACRO_QUEENS_SOLVER_STRATEGIES(X) \
     X(QUEENS_SOLVER_STRATEGY_INVALID_QUEEN, 0u) \
     X(QUEENS_SOLVER_STRATEGY_INVALID_ELIMINATION, 1u) \
     X(QUEENS_SOLVER_STRATEGY_ELIMINATE_QUEEN_SURROUNDING, 2u) \
@@ -22,8 +22,8 @@
 typedef enum : uint8
 {
     QUEENS_SOLVER_STRATEGY_FIRST = 0u,
-    #define XMACRO_GENERATE_ENUM(name, value) name = value,
-    QUEENS_SOLVER_STRATEGIES(XMACRO_GENERATE_ENUM)
+    #define QUEENS_SOLVER_GENERATE_ENUM(name, value) name = value,
+    XMACRO_QUEENS_SOLVER_STRATEGIES(QUEENS_SOLVER_GENERATE_ENUM)
 } QueensSolver_Strategy_t;
 
 QueensSolver_Strategy_t QueensSolver_IncrementalSolve(QueensBoard_Board_t* board);
