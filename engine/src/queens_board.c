@@ -130,13 +130,13 @@ void QueensBoard_PrintBoard(const QueensBoard_Board_t* const board)
         {
             QueensBoard_Cell_t cell = board->board[IDX(row, column, board->board_size)];
             uint8 color = QueensBoard_GetColor(cell);
-            if (QueensBoard_IsCellEliminated(cell))
+            if (QueensBoard_IsPlayerQueenPresent(cell))
             {
-                printf("%sE\033[0m ", colors_console[color % 16]);
+                printf("%sQ\033[0m ", colors_console[color % 16]);
             }
-            else if (QueensBoard_IsPlayerQueenPresent(cell))
+            else if (QueensBoard_IsCellEliminated(cell))
             {
-                printf("%s\033[1mQ\033[0m ", colors_console[color % 16]);
+                printf("%s\033[1mE\033[0m ", colors_console[color % 16]);
             }
             else
             {

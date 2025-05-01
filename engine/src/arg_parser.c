@@ -165,7 +165,7 @@ int ArgParser_GenerateAndSolve(int argc, char **argv)
     while (QueensSolver_IsBoardSolved(&board) == false)
     {
         strategy = QueensSolver_IncrementalSolve(&board);
-        printf("\n\nStrategy: %d\n", strategy);
+        printf("\n\nStrategy: %s\n", QueensSolver_GetStrategyName(strategy));
         QueensBoard_PrintBoard(&board);
     }
 

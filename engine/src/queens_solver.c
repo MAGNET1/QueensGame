@@ -86,7 +86,7 @@ QueensSolver_Strategy_t QueensSolver_IncrementalSolve(QueensBoard_Board_t* board
         return QUEENS_SOLVER_FAILED;
     }
 
-    for (uint8 i = 0; i < QUEENS_SOLVER_STRATEGY_LAST; i++)
+    for (uint8 i = QUEENS_SOLVER_STRATEGY_FIRST; i < QUEENS_SOLVER_STRATEGY_LAST; i++)
     {
         strategy_mapping[i].strategy_func(board);
         /* if no change, nothing was solved at a particular step */
@@ -375,49 +375,38 @@ static void QueensSolver_Strategy_LastFreeRowOrColumn(QueensBoard_Board_t* board
 {
     for (uint8 row = 0; row < board->board_size; row++)
     {
-        uint8 eliminated_count = 0u;
+        uint8 empty_count = 0u;
         uint8 last_free_column = 0u;
         for (uint8 column = 0; column < board->board_size; column++)
         {
-            QueensBoard_Cell_t cell = board->board[IDX(row, column, board->board_size)];
-            if (QueensBoard_IsCellEmptyPlayer(cell))
+            if (QueensBoard_IsCellEmptyPlayer(board->board[IDX(row, column, board->board_size)]))
             {
-                eliminated_count++;
-            }
-            else
-            {
+                empty_count++;
                 last_free_column = column;
             }
         }
 
-        if (eliminated_count == board->board_size-1)
+        if (empty_count == 1u)
         {
-            QueensBoard_Cell_t cell = board->board[IDX(row, last_free_column, board->board_size)];
-            assert(QueensBoard_IsQueenPresent(cell) == true);
-            QueensBoard_SetPlayerQueen(&cell, true);
-            board->board[IDX(row, last_free_column, board->board_size)] = cell;
+            QueensBoard_SetPlayerQueen(&board->board[IDX(row, last_free_column, board->board_size)], true);
             return;
         }
     }
 
     for (uint8 column = 0; column < board->board_size; column++)
     {
-        uint8 eliminated_count = 0u;
+        uint8 empty_count = 0u;
         uint8 last_free_row = 0u;
         for (uint8 row = 0; row < board->board_size; row++)
         {
-            QueensBoard_Cell_t cell = board->board[IDX(row, column, board->board_size)];
-            if (QueensBoard_IsCellEliminated(cell))
+            if (QueensBoard_IsCellEmptyPlayer(board->board[IDX(row, column, board->board_size)]))
             {
-                eliminated_count++;
-            }
-            else
-            {
+                empty_count++;
                 last_free_row = row;
             }
         }
 
-        if (eliminated_count == board->board_size-1)
+        if (empty_count == 1u)
         {
             QueensBoard_SetPlayerQueen(&board->board[IDX(last_free_row, column, board->board_size)], true);
             return;
@@ -441,7 +430,9 @@ static void QueensSolver_Strategy_LastAvailableColorShallBeQueen(QueensBoard_Boa
     {
         for (uint8 column = 0; column < board->board_size; column++)
         {
-            if (QueensBoard_IsCellEmptyPlayer(board->board[IDX(row, column, board->board_size)]) == false)
+            volatile uint8 dbg_idx = IDX(row, column, board->board_size);
+
+            if (QueensBoard_IsCellEmptyPlayer(board->board[dbg_idx]))
             {
                 uint8 color = QueensBoard_GetColor(board->board[IDX(row, column, board->board_size)]);
                 colors[color]++;
@@ -528,28 +519,21 @@ static void QueensSolver_Strategy_GroupOnlyInSingleRowOrColumn(QueensBoard_Board
                             if (cell_color == color)
                             {
                                 color_in_other_row_found = true;
-                                break;
+                                goto color_check;
                             }
                         }
                     }
                 }
 
+            color_check:
                 if (color_in_other_row_found == false)
                 {
-                    for (uint8 color_row = 0; color_row < board->board_size; color_row++)
+                    for (uint8 color_column = 0; color_column < board->board_size; color_column++)
                     {
-                        for (uint8 color_column = 0; color_column < board->board_size; color_column++)
+                        uint8 cell_color = QueensBoard_GetColor(board->board[IDX(row, color_column, board->board_size)]);
+                        if (cell_color != color)
                         {
-                            if (color_row == row)
-                            {
-                                continue;
-                            }
-
-                            uint8 cell_color = QueensBoard_GetColor(board->board[IDX(color_row, color_column, board->board_size)]);
-                            if (cell_color != color)
-                            {
-                                QueensBoard_SetCellEliminated(&board->board[IDX(color_row, color_column, board->board_size)], true);
-                            }
+                            QueensBoard_SetCellEliminated(&board->board[IDX(row, color_column, board->board_size)], true);
                         }
                     }
 
@@ -594,28 +578,21 @@ static void QueensSolver_Strategy_GroupOnlyInSingleRowOrColumn(QueensBoard_Board
                             if (cell_color == color)
                             {
                                 color_in_other_column_found = true;
-                                break;
+                                goto row_check;
                             }
                         }
                     }
                 }
 
+            row_check:
                 if (color_in_other_column_found == false)
                 {
-                    for (uint8 color_column = 0; color_column < board->board_size; color_column++)
+                    for (uint8 color_row = 0; color_row < board->board_size; color_row++)
                     {
-                        for (uint8 color_row = 0; color_row < board->board_size; color_row++)
+                        uint8 cell_color = QueensBoard_GetColor(board->board[IDX(color_row, column, board->board_size)]);
+                        if (cell_color != color)
                         {
-                            if (color_column == column)
-                            {
-                                continue;
-                            }
-
-                            uint8 cell_color = QueensBoard_GetColor(board->board[IDX(color_row, color_column, board->board_size)]);
-                            if (cell_color != color)
-                            {
-                                QueensBoard_SetCellEliminated(&board->board[IDX(color_row, color_column, board->board_size)], true);
-                            }
+                            QueensBoard_SetCellEliminated(&board->board[IDX(color_row, column, board->board_size)], true);
                         }
                     }
 
@@ -784,6 +761,7 @@ static void QueensSolver_Strategy_QueenPlacementEliminatesAllTheColorsLeft(Queen
                 QueensSolver_PlaceQueen(&board_copy, row, column);
 
                 memset(colors, 0, board->board_size+1);
+                memset(queen_colors, 0, board->board_size+1);
 
                 for (uint8 i = 0; i < board->board_size; i++)
                 {
@@ -1379,4 +1357,19 @@ static bool QueensSolver_IsBoardValid(QueensBoard_Board_t* board)
 static inline uint8 QueensSolver_RoundUpDiv(uint8 num, uint8 div)
 {
     return ((num + div - 1u) / div);
+}
+
+const char* QueensSolver_GetStrategyName(QueensSolver_Strategy_t strategy)
+{
+    switch(strategy)
+    {
+        #define XMACRO_STRATEGY_NAME(name, value) \
+            case value: \
+                return #name;
+
+        QUEENS_SOLVER_STRATEGIES(XMACRO_STRATEGY_NAME)
+
+        default:
+            return "Unknown strategy";
+    }
 }
