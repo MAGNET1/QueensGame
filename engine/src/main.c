@@ -7,6 +7,7 @@ void global_config_init();
 int main(int argc, char** argv)
 {
     RNG_Seed((uint64)time(NULL));
+    // RNG_Seed((uint64)4ULL);
     global_config_init();
 
     return ArgParser_ParseArguments(argc, argv);

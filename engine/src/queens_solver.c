@@ -139,22 +139,22 @@ bool QueensSolver_IsBoardSolved(QueensBoard_Board_t* board)
         return false;
     }
 
-    for (uint8 i = 0; i < board->board_size; i++)
+    for (uint8 row_idx = 0; row_idx < board->board_size; row_idx++)
     {
-        for (uint8 j = 0; j < board->board_size; j++)
+        for (uint8 column_idx = 0; column_idx < board->board_size; column_idx++)
         {
-            if (QueensBoard_IsPlayerQueenPresent(board->board[IDX(i, j, board->board_size)]) == true)
+            if (QueensBoard_IsPlayerQueenPresent(board->board[IDX(row_idx, column_idx, board->board_size)]) == true)
             {
-                rows[i]++;
-                columns[j]++;
+                rows[row_idx]++;
+                columns[column_idx]++;
             }
         }
     }
 
-    for (uint8 i = 0; i < board->board_size; i++)
+    for (uint8 row_column_idx = 0; row_column_idx < board->board_size; row_column_idx++)
     {
-        if ((rows[i] != 1) ||
-            (columns[i] != 1))
+        if ((rows[row_column_idx] != 1) ||
+            (columns[row_column_idx] != 1))
         {
             free(rows);
             free(columns);
@@ -163,18 +163,18 @@ bool QueensSolver_IsBoardSolved(QueensBoard_Board_t* board)
     }
 
     /* no diagonal adjacency */
-    for (uint8 i = 0; i < board->board_size; i++)
+    for (uint8 row_idx = 0; row_idx < board->board_size; row_idx++)
     {
-        for (uint8 j = 0; j < board->board_size; j++)
+        for (uint8 column_idx = 0; column_idx < board->board_size; column_idx++)
         {
-            if (QueensBoard_IsPlayerQueenPresent(board->board[IDX(i, j, board->board_size)]) == true)
+            if (QueensBoard_IsPlayerQueenPresent(board->board[IDX(row_idx, column_idx, board->board_size)]) == true)
             {
                 sint8 directions[4][2] = {{-1, -1}, {-1, 1}, {1, -1}, {1, 1}};
-                for (uint8 k = 0; k < 4; k++)
+                for (uint8 direction_idx = 0; direction_idx < 4; direction_idx++)
                 {
-                    sint8 new_row = (sint8)i + directions[k][0];
-                    sint8 new_column = (sint8)j + directions[k][1];
-                    while (new_row >= 0 && new_row < board->board_size && new_column >= 0 && new_column < board->board_size)
+                    sint8 new_row = (sint8)row_idx + directions[direction_idx][0];
+                    sint8 new_column = (sint8)column_idx + directions[direction_idx][1];
+                    if (new_row >= 0 && new_row < board->board_size && new_column >= 0 && new_column < board->board_size)
                     {
                         if (QueensBoard_IsPlayerQueenPresent(board->board[IDX(new_row, new_column, board->board_size)]) == true)
                         {
@@ -182,9 +182,6 @@ bool QueensSolver_IsBoardSolved(QueensBoard_Board_t* board)
                             free(columns);
                             return false;
                         }
-
-                        new_row += directions[k][0];
-                        new_column += directions[k][1];
                     }
                 }
             }

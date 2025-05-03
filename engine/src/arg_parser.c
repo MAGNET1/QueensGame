@@ -162,7 +162,7 @@ int ArgParser_GenerateAndSolve(int argc, char **argv)
 
     QueensSolver_Strategy_t strategy = QUEENS_SOLVER_FAILED;
 
-    while (QueensSolver_IsBoardSolved(&board) == false)
+    while (strategy != QUEENS_SOLVER_SOLVED)
     {
         strategy = QueensSolver_IncrementalSolve(&board);
         printf("\n\nStrategy: %s\n", QueensSolver_GetStrategyName(strategy));
