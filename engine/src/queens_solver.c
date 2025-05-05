@@ -35,6 +35,8 @@ typedef struct
     uint8* colors_in_window_column;
     uint8* colors_outside_window_row;
     uint8* colors_outside_window_column;
+    uint8* colors_in_window_and_not_outside_row;
+    uint8* colors_in_window_and_not_outside_column;
     uint8* colors_present_in_row;
     uint8* colors_present_in_column;
     uint8 *rolling_window;
@@ -511,46 +513,62 @@ static void QueensSolver_Strategy_GroupOnlyInSingleRowOrColumn(QueensBoard_Board
         {
             /* at least 2 cells of a given color in a row are present */
             /* no need to check for only 1 cell, as it would have been already solved by QueensSolver_Strategy_LastAvailableColorShallBeQueen */
-            if (colors[color] > 1u)
+            if (colors[color] <= 1u)
             {
-                bool color_in_other_row_found = false;
+                continue;
+            }
 
-                for (uint8 color_row = 0; color_row < board->board_size; color_row++)
+            /* at least 2 colors are present in a row */
+            uint8 colors_in_row_count = 0u;
+            for (uint8 color_check = 1; color_check <= board->board_size; color_check++)
+            {
+                if (colors[color_check] > 0u)
                 {
-                    if (color_row == row)
-                    {
-                        continue;
-                    }
+                    colors_in_row_count++;
+                }
+            }
+            if (colors_in_row_count <= 1u)
+            {
+                continue;
+            }
 
-                    for (uint8 color_column = 0; color_column < board->board_size; color_column++)
+            bool color_in_other_row_found = false;
+
+            for (uint8 color_row = 0; color_row < board->board_size; color_row++)
+            {
+                if (color_row == row)
+                {
+                    continue;
+                }
+
+                for (uint8 color_column = 0; color_column < board->board_size; color_column++)
+                {
+                    if (QueensBoard_IsCellEmptyPlayer(board->board[IDX(color_row, color_column, board->board_size)]) == true)
                     {
-                        if (QueensBoard_IsCellEmptyPlayer(board->board[IDX(color_row, color_column, board->board_size)]) == true)
+                        uint8 cell_color = QueensBoard_GetColor(board->board[IDX(color_row, color_column, board->board_size)]);
+                        if (cell_color == color)
                         {
-                            uint8 cell_color = QueensBoard_GetColor(board->board[IDX(color_row, color_column, board->board_size)]);
-                            if (cell_color == color)
-                            {
-                                color_in_other_row_found = true;
-                                goto color_check;
-                            }
+                            color_in_other_row_found = true;
+                            goto color_check;
                         }
                     }
                 }
+            }
 
-            color_check:
-                if (color_in_other_row_found == false)
+        color_check:
+            if (color_in_other_row_found == false)
+            {
+                for (uint8 color_column = 0; color_column < board->board_size; color_column++)
                 {
-                    for (uint8 color_column = 0; color_column < board->board_size; color_column++)
+                    uint8 cell_color = QueensBoard_GetColor(board->board[IDX(row, color_column, board->board_size)]);
+                    if (cell_color != color)
                     {
-                        uint8 cell_color = QueensBoard_GetColor(board->board[IDX(row, color_column, board->board_size)]);
-                        if (cell_color != color)
-                        {
-                            QueensBoard_SetCellEliminated(&board->board[IDX(row, color_column, board->board_size)], true);
-                        }
+                        QueensBoard_SetCellEliminated(&board->board[IDX(row, color_column, board->board_size)], true);
                     }
-
-                    free(colors);
-                    return;
                 }
+
+                free(colors);
+                return;
             }
         }
     }
@@ -570,46 +588,64 @@ static void QueensSolver_Strategy_GroupOnlyInSingleRowOrColumn(QueensBoard_Board
 
         for (uint8 color = 1; color <= board->board_size; color++)
         {
-            if (colors[color] > 1u)
+            /* at least 2 cells of a given color in a row are present */
+            /* no need to check for only 1 cell, as it would have been already solved by QueensSolver_Strategy_LastAvailableColorShallBeQueen */
+            if (colors[color] <= 1u)
             {
-                bool color_in_other_column_found = false;
+                continue;
+            }
 
-                for (uint8 color_column = 0; color_column < board->board_size; color_column++)
+            /* at least 2 colors are present in column */
+            uint8 colors_in_column_count = 0u;
+            for (uint8 color_check = 1; color_check <= board->board_size; color_check++)
+            {
+                if (colors[color_check] > 0u)
                 {
-                    if (color_column == column)
-                    {
-                        continue;
-                    }
+                    colors_in_column_count++;
+                }
+            }
+            if (colors_in_column_count <= 1u)
+            {
+                continue;
+            }
 
-                    for (uint8 color_row = 0; color_row < board->board_size; color_row++)
+            bool color_in_other_column_found = false;
+
+            for (uint8 color_column = 0; color_column < board->board_size; color_column++)
+            {
+                if (color_column == column)
+                {
+                    continue;
+                }
+
+                for (uint8 color_row = 0; color_row < board->board_size; color_row++)
+                {
+                    if (QueensBoard_IsCellEmptyPlayer(board->board[IDX(color_row, color_column, board->board_size)]) == true)
                     {
-                        if (QueensBoard_IsCellEmptyPlayer(board->board[IDX(color_row, color_column, board->board_size)]) == true)
+                        uint8 cell_color = QueensBoard_GetColor(board->board[IDX(color_row, color_column, board->board_size)]);
+                        if (cell_color == color)
                         {
-                            uint8 cell_color = QueensBoard_GetColor(board->board[IDX(color_row, color_column, board->board_size)]);
-                            if (cell_color == color)
-                            {
-                                color_in_other_column_found = true;
-                                goto row_check;
-                            }
+                            color_in_other_column_found = true;
+                            goto row_check;
                         }
                     }
                 }
+            }
 
-            row_check:
-                if (color_in_other_column_found == false)
+        row_check:
+            if (color_in_other_column_found == false)
+            {
+                for (uint8 color_row = 0; color_row < board->board_size; color_row++)
                 {
-                    for (uint8 color_row = 0; color_row < board->board_size; color_row++)
+                    uint8 cell_color = QueensBoard_GetColor(board->board[IDX(color_row, column, board->board_size)]);
+                    if (cell_color != color)
                     {
-                        uint8 cell_color = QueensBoard_GetColor(board->board[IDX(color_row, column, board->board_size)]);
-                        if (cell_color != color)
-                        {
-                            QueensBoard_SetCellEliminated(&board->board[IDX(color_row, column, board->board_size)], true);
-                        }
+                        QueensBoard_SetCellEliminated(&board->board[IDX(color_row, column, board->board_size)], true);
                     }
-
-                    free(colors);
-                    return;
                 }
+
+                free(colors);
+                return;
             }
         }
     }
@@ -878,7 +914,7 @@ static void QueensSolver_Strategy_NColorGroupsOccupyingNRownsOrColumns(QueensBoa
     size_t colors_in_outside_window_size     = (board->board_size+1)                    * sizeof(uint8);
     size_t colors_present_in_row_window_size =  board->board_size*(board->board_size+1) * sizeof(uint8);
     size_t rolling_window_size               =  board->board_size                       * sizeof(uint8);
-    size_t arena_size                        = ((colors_in_outside_window_size     * 4u) +
+    size_t arena_size                        = ((colors_in_outside_window_size     * 6u) +
                                                 (colors_present_in_row_window_size * 2u) +
                                                 (rolling_window_size               * 1u));
 
@@ -889,13 +925,15 @@ static void QueensSolver_Strategy_NColorGroupsOccupyingNRownsOrColumns(QueensBoa
     }
 
     QueensSolver_Strategy_NGroups_Alloc_t ngroups_alloc;
-    ngroups_alloc.colors_in_window_row         = arena;
-    ngroups_alloc.colors_in_window_column      = ngroups_alloc.colors_in_window_row + colors_in_outside_window_size;
-    ngroups_alloc.colors_outside_window_row    = ngroups_alloc.colors_in_window_column + colors_in_outside_window_size;
-    ngroups_alloc.colors_outside_window_column = ngroups_alloc.colors_outside_window_row + colors_in_outside_window_size;
-    ngroups_alloc.colors_present_in_row        = ngroups_alloc.colors_outside_window_column + colors_in_outside_window_size;
-    ngroups_alloc.colors_present_in_column     = ngroups_alloc.colors_present_in_row + colors_present_in_row_window_size;
-    ngroups_alloc.rolling_window               = ngroups_alloc.colors_present_in_column + colors_present_in_row_window_size;
+    ngroups_alloc.colors_in_window_row                           = arena;
+    ngroups_alloc.colors_in_window_column                        = ngroups_alloc.colors_in_window_row + colors_in_outside_window_size;
+    ngroups_alloc.colors_outside_window_row                      = ngroups_alloc.colors_in_window_column + colors_in_outside_window_size;
+    ngroups_alloc.colors_outside_window_column                   = ngroups_alloc.colors_outside_window_row + colors_in_outside_window_size;
+    ngroups_alloc.colors_in_window_and_not_outside_row           = ngroups_alloc.colors_outside_window_column + colors_in_outside_window_size;
+    ngroups_alloc.colors_in_window_and_not_outside_column        = ngroups_alloc.colors_in_window_and_not_outside_row + colors_in_outside_window_size;
+    ngroups_alloc.colors_present_in_row                          = ngroups_alloc.colors_in_window_and_not_outside_column + colors_in_outside_window_size;
+    ngroups_alloc.colors_present_in_column                       = ngroups_alloc.colors_present_in_row + colors_present_in_row_window_size;
+    ngroups_alloc.rolling_window                                 = ngroups_alloc.colors_present_in_column + colors_present_in_row_window_size;
 
     assert((ngroups_alloc.rolling_window + rolling_window_size) == (arena + arena_size));
 
@@ -1039,15 +1077,35 @@ free_resources:
 
 static bool QueensSolver_Strategy_NColorGroupsOccupyingNRownsOrColumns_Algorithm(QueensBoard_Board_t* board, QueensSolver_Strategy_NGroups_Alloc_t *ngroups_alloc)
 {
+    /* if Queens is present in row/column of the window, abort */
+    for (uint8 rc = 0; rc < board->board_size; rc++)
+    {
+        if (ngroups_alloc->rolling_window[rc] == 1u)
+        {
+            for (uint8 cr = 0; cr < board->board_size; cr++)
+            {
+                if ((QueensBoard_IsPlayerQueenPresent(board->board[IDX(rc, cr, board->board_size)]) == true) ||
+                    (QueensBoard_IsPlayerQueenPresent(board->board[IDX(cr, rc, board->board_size)]) == true))
+                {
+                    return false;
+                }
+            }
+        }
+    }
+
     uint8 colors_in_window_row_count         = 0u;
     uint8 colors_in_window_column_count      = 0u;
     uint8 colors_outside_window_row_count    = 0u;
     uint8 colors_outside_window_column_count = 0u;
+    uint8 colors_in_window_and_not_outside_row_count = 0u;
+    uint8 colors_in_window_and_not_outside_column_count = 0u;
 
     memset(ngroups_alloc->colors_in_window_row, 0, board->board_size+1);
     memset(ngroups_alloc->colors_in_window_column, 0, board->board_size+1);
     memset(ngroups_alloc->colors_outside_window_row, 0, board->board_size+1);
     memset(ngroups_alloc->colors_outside_window_column, 0, board->board_size+1);
+    memset(ngroups_alloc->colors_in_window_and_not_outside_row, 0, board->board_size+1);
+    memset(ngroups_alloc->colors_in_window_and_not_outside_column, 0, board->board_size+1);
 
     /* identify colors present in the window */
     for (uint8 rc = 0; rc < board->board_size; rc++)
@@ -1136,13 +1194,15 @@ static bool QueensSolver_Strategy_NColorGroupsOccupyingNRownsOrColumns_Algorithm
 
     /* at this point we're certain that there's more than N colors (M from now on) in N rows/columns */
     /* check if N out of M colors are fully contained within N rows/column. If yes, any colors that do not belong to N can be eliminated */
+
+    /* helper structure: determine which colors are present outside of window */
     for (uint8 color = 1; color <= board->board_size; color++)
     {
-        if ((ngroups_alloc->colors_in_window_row[color] == 0u) &&
-            (ngroups_alloc->colors_in_window_column[color] == 0u))
-        {
-            continue;
-        }
+        // if ((ngroups_alloc->colors_in_window_row[color] == 0u) &&
+        //     (ngroups_alloc->colors_in_window_column[color] == 0u))
+        // {
+        //     continue;
+        // }
 
         for (uint8 rc = 0; rc < board->board_size; rc++)
         {
@@ -1165,8 +1225,40 @@ static bool QueensSolver_Strategy_NColorGroupsOccupyingNRownsOrColumns_Algorithm
         }
     }
 
-    if (colors_outside_window_row_count == board->board_size - ngroups_alloc->rc_count)
+    /* helper structure: determine which colors are present ONLY within the window */
+    for (uint8 color = 1; color <= board->board_size; color++)
     {
+        if ((ngroups_alloc->colors_in_window_row[color] == 0u) &&
+            (ngroups_alloc->colors_in_window_column[color] == 0u))
+        {
+            continue;
+        }
+
+        for (uint8 rc = 0; rc < board->board_size; rc++)
+        {
+            if (ngroups_alloc->rolling_window[rc] == 1u)
+            {
+                if ((ngroups_alloc->colors_present_in_row[IDX(rc, color, board->board_size)] == COLOR_PRESENT) &&
+                    (ngroups_alloc->colors_in_window_and_not_outside_row[color] != COLOR_PRESENT))
+                {
+                    ngroups_alloc->colors_in_window_and_not_outside_row[color] = COLOR_PRESENT;
+                    colors_in_window_and_not_outside_row_count++;
+                }
+
+                if ((ngroups_alloc->colors_present_in_column[IDX(rc, color, board->board_size)] == COLOR_PRESENT) &&
+                    (ngroups_alloc->colors_in_window_and_not_outside_column[color] != COLOR_PRESENT))
+                {
+                    ngroups_alloc->colors_in_window_and_not_outside_column[color] = COLOR_PRESENT;
+                    colors_in_window_and_not_outside_column_count++;
+                }
+            }
+        }
+    }
+
+    if ((colors_in_window_and_not_outside_row_count == ngroups_alloc->rc_count) &&
+        (colors_outside_window_row_count > 0u))
+    {
+        bool eliminated = false;
         for (uint8 row = 0; row < board->board_size; row++)
         {
             if (ngroups_alloc->rolling_window[row] == 1u)
@@ -1176,20 +1268,26 @@ static bool QueensSolver_Strategy_NColorGroupsOccupyingNRownsOrColumns_Algorithm
                     if (QueensBoard_IsCellEmptyPlayer(board->board[IDX(row, column, board->board_size)]) == true)
                     {
                         uint8 color = QueensBoard_GetColor(board->board[IDX(row, column, board->board_size)]);
-                        if (ngroups_alloc->colors_outside_window_row[color] == 1u)
+                        if (ngroups_alloc->colors_in_window_and_not_outside_column[color] == 0u)
                         {
                             QueensBoard_SetCellEliminated(&board->board[IDX(row, column, board->board_size)], true);
+                            eliminated = true;
                         }
                     }
                 }
             }
         }
 
-        return true;
+        if (eliminated == true)
+        {
+            return true;
+        }
     }
 
-    if (colors_outside_window_column_count == board->board_size - ngroups_alloc->rc_count)
+    if ((colors_in_window_and_not_outside_column_count == ngroups_alloc->rc_count) &&
+        (colors_outside_window_column_count > 0u))
     {
+        bool eliminated = false;
         for (uint8 column = 0; column < board->board_size; column++)
         {
             if (ngroups_alloc->rolling_window[column] == 1u)
@@ -1199,16 +1297,20 @@ static bool QueensSolver_Strategy_NColorGroupsOccupyingNRownsOrColumns_Algorithm
                     if (QueensBoard_IsCellEmptyPlayer(board->board[IDX(row, column, board->board_size)]) == true)
                     {
                         uint8 color = QueensBoard_GetColor(board->board[IDX(row, column, board->board_size)]);
-                        if (ngroups_alloc->colors_outside_window_column[color] == 1u)
+                        if (ngroups_alloc->colors_in_window_and_not_outside_row[color] == 0u)
                         {
                             QueensBoard_SetCellEliminated(&board->board[IDX(row, column, board->board_size)], true);
+                            eliminated = true;
                         }
                     }
                 }
             }
         }
 
-        return true;
+        if (eliminated == true)
+        {
+            return true;
+        }
     }
 
     return false;
