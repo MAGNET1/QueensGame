@@ -13,6 +13,9 @@ typedef struct
     uint8 boardgen_neighbor_skip_chance;
     uint8 boardgen_only_horizontal_neighbor_chance;
     uint8 boardgen_only_vertical_neighbor_chance;
+
+    /* QueensBoard */
+    bool board_sparse_print;
 } Queens_GlobalConfig_t;
 
 extern Queens_GlobalConfig_t global_config;

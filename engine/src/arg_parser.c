@@ -162,14 +162,40 @@ int ArgParser_GenerateAndSolve(int argc, char **argv)
 
     QueensSolver_Strategy_t strategy = QUEENS_SOLVER_FAILED;
 
+    bool was_ngroups_strategy = false;
+    bool was_forcing_strategy = false;
+    uint16 iterations = 0u;
+
     do
     {
+        iterations++;
         strategy = QueensSolver_IncrementalSolve(&board);
+        if (strategy == QUEENS_SOLVER_STRATEGY_N_COLOR_GROUPS_OCCUPYING_N_ROWS_OR_COLUMNS)
+        {
+            was_ngroups_strategy = true;
+        }
+        else if (strategy == QUEENS_SOLVER_STRATEGY_QUEEN_PLACEMENT_LEADS_TO_INVALID_FORCING_SEQUENCE)
+        {
+            was_forcing_strategy = true;
+        }
         printf("\n\nStrategy: %s\n", QueensSolver_GetStrategyName(strategy));
         QueensBoard_PrintBoard(&board);
     }
     while ((strategy != QUEENS_SOLVER_SOLVED) &&
            (strategy != QUEENS_SOLVER_FAILED));
+
+    if (was_ngroups_strategy == true)
+    {
+        printf("NGroups strategy was used!\n");
+    }
+
+    if (was_forcing_strategy == true)
+    {
+        printf("Forcing strategy was used!\n");
+    }
+
+    printf("iterations: %u\n", iterations);
+
 
     return 0;
 }

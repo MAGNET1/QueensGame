@@ -1,4 +1,5 @@
 #include <queens_board.h>
+#include <global_config.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -132,18 +133,18 @@ void QueensBoard_PrintBoard(const QueensBoard_Board_t* const board)
             uint8 color = QueensBoard_GetColor(cell);
             if (QueensBoard_IsPlayerQueenPresent(cell))
             {
-                printf("%sQ\033[0m ", colors_console[color % 16]);
+                printf("%sQ\033[0m %s", colors_console[color % 16], global_config.board_sparse_print ? "  " : "");
             }
             else if (QueensBoard_IsCellEliminated(cell))
             {
-                printf("%s\033[1mX\033[0m ", colors_console[color % 16]);
+                printf("%s\033[1mX\033[0m %s", colors_console[color % 16], global_config.board_sparse_print ? "  " : "");
             }
             else
             {
-                printf("%s▓\033[0m ", colors_console[color % 16]);
+                printf("%s▓\033[0m %s", colors_console[color % 16], global_config.board_sparse_print ? "  " : "");
             }
         }
-        printf("\n");
+        printf("\n%s", global_config.board_sparse_print ? "\n" : "");
     }
 }
 
