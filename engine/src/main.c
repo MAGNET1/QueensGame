@@ -20,4 +20,5 @@ void global_config_init()
     global_config.boardgen_neighbor_skip_chance = 80u;
     global_config.boardgen_only_horizontal_neighbor_chance = 5u;
     global_config.boardgen_only_vertical_neighbor_chance = 5u;
+    global_config.board_sparse_print = false;
 }
