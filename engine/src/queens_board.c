@@ -136,11 +136,11 @@ void QueensBoard_PrintBoard(const QueensBoard_Board_t* const board)
             }
             else if (QueensBoard_IsCellEliminated(cell))
             {
-                printf("%s\033[1mE\033[0m ", colors_console[color % 16]);
+                printf("%s\033[1mX\033[0m ", colors_console[color % 16]);
             }
             else
             {
-                printf("%sX\033[0m ", colors_console[color % 16]);
+                printf("%s▓\033[0m ", colors_console[color % 16]);
             }
         }
         printf("\n");
