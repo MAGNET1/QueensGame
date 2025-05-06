@@ -3,13 +3,11 @@
 
 #include <stdio.h>
 #include <stdarg.h>
-
-// Declare the global debug mode variable
-extern bool debug_print_enabled;
+#include <global_config.h>
 
 // Debug print function
 static inline void debug_print(const char *format, ...) {
-    if (debug_print_enabled == true) {
+    if (global_config.debug_print_enabled) {
         va_list args;
         va_start(args, format);
         vprintf(format, args);

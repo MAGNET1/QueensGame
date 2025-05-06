@@ -15,6 +15,7 @@ int main(int argc, char** argv)
 
 void global_config_init()
 {
+    global_config.debug_print_enabled = false;
     global_config.permutations_compressed = true;
     global_config.boardgen_cell_skip_chance = 20u;
     global_config.boardgen_neighbor_skip_chance = 80u;

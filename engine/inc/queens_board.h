@@ -30,6 +30,8 @@ bool QueensBoard_Create(QueensBoard_Board_t* empty_board_ptr, const QueensBoard_
 void QueensBoard_Free(QueensBoard_Board_t* board);
 void QueensBoard_ZeroeBoard(QueensBoard_Board_t* board);
 void QueensBoard_PrintBoard(const QueensBoard_Board_t* const board);
+void QueensBoard_PrintBoardAsString(const QueensBoard_Board_t* board);
+bool QueensBoard_ParseFromString(const char* board_str, QueensBoard_Board_t* board);
 
 QueensBoard_Cell_t QueensBoard_GetColor(const QueensBoard_Cell_t cell);
 void QueensBoard_SetColor(QueensBoard_Cell_t* cell, const QueensBoard_Cell_t color);

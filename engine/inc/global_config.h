@@ -5,6 +5,8 @@
 
 typedef struct
 {
+    /* General */
+    bool debug_print_enabled;
     /* QueensPermutations */
     bool permutations_compressed;
 

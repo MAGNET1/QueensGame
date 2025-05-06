@@ -22,6 +22,5 @@ typedef struct
 [[maybe_unused]] QueensPermutations_Result_t QueensPermutations_GetAll(QueensPermutation_BoardSize_t board_size);
 [[maybe_unused]] QueensPermutations_Result_t QueensPermutations_GetRandom(const QueensPermutation_BoardSize_t board_size);
 bool QueensPermutations_FreeResult(const QueensPermutations_Result_t* result);
-[[maybe_unused]] void QueensPermutations_PrintBoards(const QueensPermutations_Result_t* const result, bool as_hex);
 
 #endif /* QUEENS_PERMUTATIONS_H */

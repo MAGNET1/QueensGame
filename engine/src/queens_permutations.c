@@ -433,27 +433,6 @@ static bool QueensPermutations_IsQueenPlacementLegal(const QueensPermutations_Qu
     return true;
 }
 
-[[maybe_unused]] void QueensPermutations_PrintBoards(const QueensPermutations_Result_t* const result, bool as_hex)
-{
-    printf("Board size: %d\nBoards count: %d\n\n", result->board_size, result->boards_count);
-
-    for (uint32 board_idx = 0u; board_idx < result->boards_count; board_idx++)
-    {
-        for (uint8 board_column_idx = 0u; board_column_idx < result->board_size; board_column_idx++)
-        {
-            if (as_hex == true)
-            {
-                printf("%02X ", result->boards[(board_idx*result->board_size) + board_column_idx]);
-            }
-            else
-            {
-                printf("%d ", result->boards[(board_idx*result->board_size) + board_column_idx]);
-            }
-        }
-        printf("\n");
-    }
-}
-
 static FILE* QueensPermutations_OpenPermutationsFile(QueensPermutation_BoardSize_t board_size, const char* mode)
 {
     /* prepare filename */
